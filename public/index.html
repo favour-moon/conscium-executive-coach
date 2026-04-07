@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conscium</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header id="mainHeader" class="app-header hidden">
+        <div>
+          <h1>Conscium</h1>
+          <p>think clearly, decide confidently, deliver with impact.</p>
+        </div>
+        <div class="header-actions">
+          <button
+            id="adminMenuBtn"
+            class="icon-btn hidden"
+            title="Admin dashboard"
+            aria-label="Admin dashboard"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 2 3 6v6c0 5 3.84 9.74 9 11 5.16-1.26 9-6 9-11V6l-9-4Zm0 3.12 5.6 2.49v4.31c0 3.75-2.67 7.5-5.6 8.49-2.93-.99-5.6-4.74-5.6-8.49V7.61L12 5.12Zm-2 4.88v2h4v-2h-4Zm0 3v2h4v-2h-4Z"
+              />
+            </svg>
+          </button>
+          <button
+            id="dashboardMenuBtn"
+            class="icon-btn hidden"
+            title="Coachee dashboard"
+            aria-label="Coachee dashboard"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 3a8.5 8.5 0 0 0-8.5 8.5c0 3.11 1.66 5.84 4.13 7.33V22h8.74v-3.17A8.48 8.48 0 0 0 20.5 11.5 8.5 8.5 0 0 0 12 3Zm-2.16 9.3a1.38 1.38 0 1 1 1.38-1.38 1.38 1.38 0 0 1-1.38 1.38Zm4.32 0a1.38 1.38 0 1 1 1.38-1.38 1.38 1.38 0 0 1-1.38 1.38Z"
+              />
+            </svg>
+          </button>
+
+          <button
+            id="accountMenuBtn"
+            class="icon-btn hidden"
+            title="Account and settings"
+            aria-label="Account and settings"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 12a4.2 4.2 0 1 0-4.2-4.2A4.2 4.2 0 0 0 12 12Zm0 2.1c-4.31 0-7.8 2.54-7.8 5.67 0 .69.56 1.23 1.25 1.23h13.1c.69 0 1.25-.54 1.25-1.23 0-3.13-3.49-5.67-7.8-5.67Z"
+              />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <section id="splashPage" class="splash">
+        <div class="splash-top">
+          <h1>Conscium</h1>
+          <p>think clearly, decide confidently, deliver with impact.</p>
+        </div>
+        <button id="getStartedBtn" class="btn splash-cta">Get Started</button>
+      </section>
+
+      <section id="authPanel" class="panel hidden">
+        <div class="auth-tabs">
+          <button id="showLoginBtn" class="btn primary">Sign in</button>
+          <button id="showRegisterBtn" class="btn">Create account</button>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+          <h2>Sign in</h2>
+          <label for="loginIdentifier">Username or email</label>
+          <input id="loginIdentifier" type="text" autocomplete="username" required />
+          <label for="loginPassword">Password</label>
+          <input
+            id="loginPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+          <button class="btn primary" type="submit">Sign in</button>
+        </form>
+
+        <form id="registerForm" class="auth-form hidden">
+          <h2>Create account</h2>
+          <label for="registerUsername">Username</label>
+          <input
+            id="registerUsername"
+            type="text"
+            autocomplete="username"
+            placeholder="lowercase letters, numbers, _ or -"
+            required
+          />
+          <label for="registerEmail">Email</label>
+          <input
+            id="registerEmail"
+            type="email"
+            autocomplete="email"
+            placeholder="optional"
+          />
+          <label for="registerPassword">Password (min 10 chars)</label>
+          <input
+            id="registerPassword"
+            type="password"
+            autocomplete="new-password"
+            minlength="10"
+            required
+          />
+          <label for="registerName">Display name</label>
+          <input id="registerName" type="text" autocomplete="name" />
+          <label for="registerRole">Role</label>
+          <input id="registerRole" type="text" />
+          <label for="registerFocus">Focus areas (comma separated)</label>
+          <input id="registerFocus" type="text" />
+          <button class="btn primary" type="submit">Create account</button>
+        </form>
+
+        <p id="authStatus" class="status">Sign in to start coaching.</p>
+      </section>
+
+      <section id="accountPanel" class="panel hidden">
+        <div class="settings-nav">
+          <h2>Account and settings</h2>
+          <button id="backToChatBtn" class="btn">Back to coach</button>
+        </div>
+
+        <div class="account-head">
+          <div>
+            <h2 id="accountName">Account</h2>
+            <p id="accountUsername" class="muted"></p>
+            <p id="accountEmail" class="muted"></p>
+          </div>
+          <button id="logoutBtn" class="btn">Logout</button>
+        </div>
+
+        <div id="passwordRequiredBanner" class="warning hidden">
+          Password reset required before coaching chat access.
+        </div>
+
+        <div class="profile-grid">
+          <div>
+            <label for="profileName">Display name</label>
+            <input id="profileName" type="text" />
+          </div>
+          <div>
+            <label for="profileRole">Role</label>
+            <input id="profileRole" type="text" />
+          </div>
+          <div class="full-width">
+            <label for="profileFocus">Focus areas</label>
+            <input id="profileFocus" type="text" />
+          </div>
+          <div class="full-width">
+            <label for="coachingTone">Coaching tone</label>
+            <select id="coachingTone">
+              <option value="supportive">More supportive</option>
+              <option value="concise">More concise</option>
+              <option value="challenging">More challenging</option>
+            </select>
+          </div>
+          <div class="full-width">
+            <label for="voiceQuality">Voice quality</label>
+            <select id="voiceQuality">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high" selected>High</option>
+            </select>
+          </div>
+          <div class="full-width">
+            <label for="sessionPace">Session pace</label>
+            <select id="sessionPace">
+              <option value="standard">Standard</option>
+              <option value="busy">Busy (short, action-first)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="style-panel">
+          <h3>Coach style</h3>
+          <div class="style-grid" id="coachStyleOptions">
+            <div class="style-scale">
+              <h4>Directive (Instructing)</h4>
+              <p>
+                Directive coaching provides clear, confident guidance when speed
+                and clarity are required. The coach offers a specific
+                recommendation based on observed patterns, context, and
+                judgement, reducing ambiguity and enabling action.
+              </p>
+              <label for="styleDirective">Intensity (1 low - 5 high)</label>
+              <select id="styleDirective">
+                <option value="1">1 - Very low</option>
+                <option value="2">2 - Low</option>
+                <option value="3">3 - Balanced</option>
+                <option value="4">4 - High</option>
+                <option value="5">5 - Very high</option>
+              </select>
+            </div>
+
+            <div class="style-scale">
+              <h4>Collaborative (Partnership)</h4>
+              <p>
+                Collaborative coaching operates as a thinking partnership,
+                combining the leader's insight with structured challenge and
+                refinement to improve decision robustness while preserving
+                ownership.
+              </p>
+              <label for="styleCollaborative">Intensity (1 low - 5 high)</label>
+              <select id="styleCollaborative">
+                <option value="1">1 - Very low</option>
+                <option value="2">2 - Low</option>
+                <option value="3">3 - Balanced</option>
+                <option value="4">4 - High</option>
+                <option value="5">5 - Very high</option>
+              </select>
+            </div>
+
+            <div class="style-scale">
+              <h4>Facilitative (Empowering)</h4>
+              <p>
+                Facilitative coaching develops the leader's own thinking through
+                reflection, exploration, and targeted questioning that builds
+                confidence and independent judgement.
+              </p>
+              <label for="styleFacilitative">Intensity (1 low - 5 high)</label>
+              <select id="styleFacilitative">
+                <option value="1">1 - Very low</option>
+                <option value="2">2 - Low</option>
+                <option value="3">3 - Balanced</option>
+                <option value="4">4 - High</option>
+                <option value="5">5 - Very high</option>
+              </select>
+            </div>
+
+            <div class="style-scale">
+              <h4>Passive (Non-Directive / Supporting)</h4>
+              <p>
+                Passive coaching provides disciplined space for the leader to
+                think out loud, with selective reflection and minimal
+                intervention to reinforce autonomy and clarity.
+              </p>
+              <label for="stylePassive">Intensity (1 low - 5 high)</label>
+              <select id="stylePassive">
+                <option value="1">1 - Very low</option>
+                <option value="2">2 - Low</option>
+                <option value="3">3 - Balanced</option>
+                <option value="4">4 - High</option>
+                <option value="5">5 - Very high</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <details class="constitution-panel">
+          <summary>Coaching Constitution (Version 2.0)</summary>
+          <div class="constitution-content">
+            <p>
+              <strong>Purpose:</strong> Improve leadership judgement and behaviour in
+              real-world contexts. Consilium helps leaders think clearly, decide
+              effectively, and act with confidence.
+            </p>
+            <p>
+              <strong>Core philosophy:</strong> Judgement over answers, action over
+              reflection, reality over abstraction, challenge with intent, and trust
+              as a foundation.
+            </p>
+            <p>
+              <strong>Objectives:</strong> Better decision-making, stronger delegation,
+              deeper strategic thinking, and sustained adaptability.
+            </p>
+            <p>
+              <strong>Frameworks:</strong> GROW, Kantor Four Moves, COM-B, and
+              deliberate practice.
+            </p>
+            <p>
+              <strong>Mode adaptation:</strong> Default facilitative/collaborative;
+              escalate with urgency or repeated patterns; de-escalate in sensitive
+              contexts; signal intent when shifting tone.
+            </p>
+            <p>
+              <strong>Insight/intervention rules:</strong> Keep feedback evidence-based,
+              indicate confidence where possible, prioritize recurring patterns, limit
+              nudges to 2-3 per week, and avoid over-intervention.
+            </p>
+            <p>
+              <strong>Development loop:</strong> Observation -> Feedback -> Action ->
+              Application -> Reflection -> Adjustment. Actions remain specific,
+              time-bound, behaviour-linked, and limited in number.
+            </p>
+            <p>
+              <strong>Tone:</strong> Concise, direct, professional, and grounded. Avoid
+              jargon, cliches, and excessive verbosity.
+            </p>
+            <p>
+              <strong>Trust and boundaries:</strong> Consent governs data use. Raw
+              content is private. Only behavioural signals are retained. Data usage is
+              transparent.
+            </p>
+            <p>
+              <strong>Success definition:</strong> Faster decision-making, increased
+              delegation, improved difficult conversations, and observable behaviour
+              change.
+            </p>
+          </div>
+        </details>
+
+        <div class="controls">
+          <button id="saveProfileBtn" class="btn">Save profile</button>
+          <span id="profileStatus" class="status">Profile loaded.</span>
+        </div>
+
+        <div class="nudge-panel">
+          <h3>Nudges and reminders</h3>
+          <p class="muted">
+            Schedule in-week nudges and mark them done as you progress.
+          </p>
+          <div class="profile-grid">
+            <div>
+              <label for="nudgeTitleInput">Nudge title</label>
+              <input id="nudgeTitleInput" type="text" placeholder="Weekly delegation check-in" />
+            </div>
+            <div>
+              <label for="nudgeDueAtInput">Due date and time</label>
+              <input id="nudgeDueAtInput" type="datetime-local" />
+            </div>
+            <div class="full-width">
+              <label for="nudgeMessageInput">Message</label>
+              <textarea
+                id="nudgeMessageInput"
+                rows="2"
+                placeholder="What should Conscium remind you to do?"
+              ></textarea>
+            </div>
+          </div>
+          <div class="controls">
+            <button id="addNudgeBtn" class="btn">Schedule nudge</button>
+            <button id="refreshNudgesBtn" class="btn">Refresh nudges</button>
+            <span id="nudgeStatus" class="status"></span>
+          </div>
+          <ul id="nudgeList" class="timeline"></ul>
+        </div>
+
+        <div class="password-panel">
+          <h3>Change password</h3>
+          <label for="currentPassword">Current password</label>
+          <input id="currentPassword" type="password" autocomplete="current-password" />
+          <label for="newPassword">New password (min 10 chars)</label>
+          <input id="newPassword" type="password" autocomplete="new-password" />
+          <label for="confirmPassword">Confirm new password</label>
+          <input id="confirmPassword" type="password" autocomplete="new-password" />
+          <div class="controls">
+            <button id="changePasswordBtn" class="btn">Change password</button>
+            <span id="passwordStatus" class="status"></span>
+          </div>
+        </div>
+      </section>
+
+      <section id="dashboardPage" class="panel hidden">
+        <div class="settings-nav">
+          <h2>Coachee dashboard</h2>
+          <button id="backToChatFromDashboardBtn" class="btn">Back to coach</button>
+        </div>
+
+        <p id="dashboardMeta" class="muted"></p>
+
+        <div class="dashboard-grid">
+          <article class="dash-card">
+            <h3>Development scores (1-10)</h3>
+            <div id="categoryScoreChart" class="bar-chart"></div>
+          </article>
+
+          <article class="dash-card">
+            <h3>Big Five (1-10)</h3>
+            <div id="bigFiveChart" class="bar-chart"></div>
+          </article>
+
+          <article class="dash-card">
+            <h3>Development trends</h3>
+            <svg
+              id="categoryTrendSvg"
+              class="trend-svg"
+              viewBox="0 0 640 260"
+              aria-label="Development trend line chart"
+            ></svg>
+            <div id="trendLegend" class="trend-legend"></div>
+            <p class="muted">Last 12 assessments</p>
+          </article>
+
+          <article class="dash-card">
+            <h3>Personality type</h3>
+            <p class="dash-kv">
+              MBTI: <strong id="mbtiValue">-</strong>
+            </p>
+            <p class="dash-kv">
+              DISC: <strong id="discValue">-</strong>
+            </p>
+          </article>
+
+          <article class="dash-card">
+            <h3>Intervention outcomes</h3>
+            <p class="dash-kv">
+              Avg score: <strong id="avgCategoryScore">-</strong>
+            </p>
+            <p class="dash-kv">
+              Active interventions: <strong id="activeInterventions">-</strong>
+            </p>
+            <p class="dash-kv">
+              Success rate: <strong id="interventionSuccessRate">-</strong>
+            </p>
+            <p class="dash-kv">
+              Assessments: <strong id="feedbackCoverage">-</strong>
+            </p>
+            <p class="dash-kv">
+              Last assessment: <strong id="feedbackLastAssessment">-</strong>
+            </p>
+            <p class="dash-kv">
+              Fallback captures: <strong id="fallbackAssessments">-</strong>
+            </p>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="dash-card">
+            <h3>Traits</h3>
+            <ul id="traitList" class="chip-list"></ul>
+          </article>
+
+          <article class="dash-card">
+            <h3>Strengths</h3>
+            <ul id="strengthList" class="dash-bullets"></ul>
+          </article>
+
+          <article class="dash-card">
+            <h3>Development areas</h3>
+            <ul id="developmentList" class="dash-bullets"></ul>
+          </article>
+        </div>
+
+        <article class="dash-card">
+          <h3>Interventions</h3>
+          <div class="table-wrap">
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Status</th>
+                  <th>Success</th>
+                  <th>Targets</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody id="interventionTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="dash-card">
+          <h3>Recent assessments</h3>
+          <ul id="interactionList" class="timeline"></ul>
+        </article>
+      </section>
+
+      <section id="adminPage" class="panel hidden">
+        <div class="settings-nav">
+          <h2>Admin dashboard</h2>
+          <button id="backToChatFromAdminBtn" class="btn">Back to coach</button>
+        </div>
+        <p id="adminMeta" class="muted"></p>
+
+        <div class="admin-summary-grid">
+          <article class="dash-card">
+            <h3>Total users</h3>
+            <p class="admin-stat"><strong id="adminTotalUsers">-</strong></p>
+          </article>
+          <article class="dash-card">
+            <h3>Active accounts</h3>
+            <p class="admin-stat"><strong id="adminActiveAccounts">-</strong></p>
+          </article>
+          <article class="dash-card">
+            <h3>Inactive accounts</h3>
+            <p class="admin-stat"><strong id="adminInactiveAccounts">-</strong></p>
+          </article>
+          <article class="dash-card">
+            <h3>Active (30 days)</h3>
+            <p class="admin-stat"><strong id="adminActiveUsers">-</strong></p>
+          </article>
+          <article class="dash-card">
+            <h3>Total interactions</h3>
+            <p class="admin-stat"><strong id="adminTotalInteractions">-</strong></p>
+          </article>
+          <article class="dash-card">
+            <h3>Self-reports</h3>
+            <p class="admin-stat"><strong id="adminTotalSelfReports">-</strong></p>
+          </article>
+          <article class="dash-card">
+            <h3>Feedback submissions</h3>
+            <p class="admin-stat"><strong id="adminTotalFeedback">-</strong></p>
+          </article>
+          <article class="dash-card">
+            <h3>Avg feedback</h3>
+            <p class="admin-stat"><strong id="adminAvgFeedback">-</strong></p>
+          </article>
+          <article class="dash-card">
+            <h3>Nudges due</h3>
+            <p class="admin-stat"><strong id="adminDueNudges">-</strong></p>
+          </article>
+        </div>
+
+        <article class="dash-card">
+          <h3>Top use cases</h3>
+          <ul id="adminTopUseCases" class="dash-bullets"></ul>
+        </article>
+
+        <article class="dash-card">
+          <h3>Platform settings</h3>
+          <label class="inline-option" for="adminDisableRegistration">
+            <input id="adminDisableRegistration" type="checkbox" />
+            Disable new account creation
+          </label>
+          <div class="controls">
+            <button id="saveAdminSettingsBtn" class="btn">Save admin settings</button>
+            <span id="adminSettingsStatus" class="status"></span>
+          </div>
+        </article>
+
+        <article class="dash-card">
+          <h3>All users</h3>
+          <div class="table-wrap">
+            <table class="dash-table admin-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Status</th>
+                  <th>Usage</th>
+                  <th>Used for</th>
+                  <th>Personality</th>
+                  <th>Scores</th>
+                  <th>Feedback</th>
+                  <th>Last active</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersTableBody"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section id="chatPage" class="hidden">
+        <section id="coachVisual" class="coach-visual" data-state="idle">
+          <div id="coachAvatar" class="coach-avatar" aria-hidden="true">
+            <span class="coach-halo"></span>
+            <span class="coach-photo coach-photo-base"></span>
+            <span class="coach-photo coach-photo-jaw"></span>
+            <span class="coach-photo coach-photo-mouth"></span>
+            <span class="coach-glow"></span>
+            <span id="coachMouth" class="coach-mouth-gap"></span>
+            <span class="coach-wave-bars">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </div>
+          <div class="coach-visual-copy">
+            <strong>Conscium</strong>
+            <span id="coachVisualStatus">Ready to coach</span>
+          </div>
+        </section>
+
+        <section id="messages" class="messages" aria-live="polite"></section>
+
+        <section class="composer">
+          <label for="messageInput" class="label">Your message</label>
+          <p class="input-hint">Press Enter to send. Use Shift+Enter for a new line.</p>
+          <div class="quick-actions" aria-label="Quick start prompts">
+            <button
+              class="chip-btn"
+              type="button"
+              data-quick-prompt="Use $executive-coach. I need to prepare a difficult underperformance conversation next week. Run a concise 15-minute cycle and end with 2 actions."
+            >
+              Underperformance prep
+            </button>
+            <button
+              class="chip-btn"
+              type="button"
+              data-quick-prompt="Use $executive-coach. I need to make a high-stakes decision quickly. Ask only essential questions and recommend a decision path in under 3 minutes."
+            >
+              Fast decision support
+            </button>
+            <button
+              class="chip-btn"
+              type="button"
+              data-quick-prompt="Use $executive-coach. Role-play a difficult stakeholder pushback conversation with me and give direct feedback after each response."
+            >
+              Stakeholder role-play
+            </button>
+            <button
+              class="chip-btn"
+              type="button"
+              data-quick-prompt="Use $executive-coach. Debrief my latest leadership conversation and score what to keep, stop, and start."
+            >
+              Quick debrief
+            </button>
+          </div>
+          <textarea
+            id="messageInput"
+            rows="4"
+            placeholder="Describe the real leadership situation you need to coach through..."
+          ></textarea>
+
+          <details class="context-panel">
+            <summary>Session evidence (optional)</summary>
+            <label for="meetingNotesInput">Meeting notes</label>
+            <textarea
+              id="meetingNotesInput"
+              rows="3"
+              placeholder="Paste meeting notes to improve profile signals..."
+            ></textarea>
+            <label for="selfReportInput">Coachee self-report</label>
+            <textarea
+              id="selfReportInput"
+              rows="3"
+              placeholder="How did this feel, what changed, what worked?"
+            ></textarea>
+          </details>
+
+          <div class="controls">
+            <button id="sendBtn" class="btn primary">Send</button>
+            <button id="coachStartBtn" class="btn">Coach Starts</button>
+            <button id="micBtn" class="btn">Start Mic</button>
+            <button id="stopSpeakBtn" class="btn">Stop Speaking</button>
+            <button id="resetBtn" class="btn">Reset Chat</button>
+          </div>
+
+          <div class="options">
+            <label>
+              <input id="autoSpeak" type="checkbox" checked />
+              Read assistant replies aloud
+            </label>
+            <label class="inline-option">
+              Voice
+              <select id="speechVoice">
+                <option value="shimmer">Shimmer</option>
+                <option value="nova">Nova</option>
+                <option value="alloy">Alloy</option>
+                <option value="verse">Verse</option>
+                <option value="sage">Sage</option>
+              </select>
+            </label>
+            <span id="status" class="status">Idle</span>
+          </div>
+
+          <details class="feedback-panel">
+            <summary>Post-session feedback (1-10)</summary>
+            <div class="profile-grid">
+              <div>
+                <label for="feedbackHelpfulness">Helpfulness</label>
+                <input id="feedbackHelpfulness" type="number" min="1" max="10" step="1" placeholder="1-10" />
+              </div>
+              <div>
+                <label for="feedbackClarity">Clarity</label>
+                <input id="feedbackClarity" type="number" min="1" max="10" step="1" placeholder="1-10" />
+              </div>
+              <div>
+                <label for="feedbackConfidence">Confidence</label>
+                <input id="feedbackConfidence" type="number" min="1" max="10" step="1" placeholder="1-10" />
+              </div>
+              <div class="full-width">
+                <label for="feedbackComment">Comment</label>
+                <textarea
+                  id="feedbackComment"
+                  rows="2"
+                  placeholder="What worked, what should change?"
+                ></textarea>
+              </div>
+            </div>
+            <div class="controls">
+              <button id="submitFeedbackBtn" class="btn">Submit feedback</button>
+              <span id="feedbackStatus" class="status"></span>
+            </div>
+          </details>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

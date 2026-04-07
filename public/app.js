@@ -1,0 +1,2398 @@
+const messagesEl = document.getElementById("messages");
+const inputEl = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
+const coachStartBtn = document.getElementById("coachStartBtn");
+const micBtn = document.getElementById("micBtn");
+const stopSpeakBtn = document.getElementById("stopSpeakBtn");
+const resetBtn = document.getElementById("resetBtn");
+const autoSpeakEl = document.getElementById("autoSpeak");
+const statusEl = document.getElementById("status");
+const coachVisualEl = document.getElementById("coachVisual");
+const coachVisualStatusEl = document.getElementById("coachVisualStatus");
+const coachAvatarEl = document.getElementById("coachAvatar");
+const coachMouthEl = document.getElementById("coachMouth");
+const speechVoiceEl = document.getElementById("speechVoice");
+
+const mainHeader = document.getElementById("mainHeader");
+const splashPage = document.getElementById("splashPage");
+const getStartedBtn = document.getElementById("getStartedBtn");
+const authPanel = document.getElementById("authPanel");
+const accountPanel = document.getElementById("accountPanel");
+const dashboardPage = document.getElementById("dashboardPage");
+const chatPage = document.getElementById("chatPage");
+const authStatusEl = document.getElementById("authStatus");
+const profileStatusEl = document.getElementById("profileStatus");
+const passwordStatusEl = document.getElementById("passwordStatus");
+const showLoginBtn = document.getElementById("showLoginBtn");
+const showRegisterBtn = document.getElementById("showRegisterBtn");
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+const logoutBtn = document.getElementById("logoutBtn");
+const passwordRequiredBanner = document.getElementById("passwordRequiredBanner");
+const accountMenuBtn = document.getElementById("accountMenuBtn");
+const adminMenuBtn = document.getElementById("adminMenuBtn");
+const dashboardMenuBtn = document.getElementById("dashboardMenuBtn");
+const backToChatBtn = document.getElementById("backToChatBtn");
+const backToChatFromDashboardBtn = document.getElementById(
+  "backToChatFromDashboardBtn",
+);
+const backToChatFromAdminBtn = document.getElementById("backToChatFromAdminBtn");
+const adminPage = document.getElementById("adminPage");
+
+const accountNameEl = document.getElementById("accountName");
+const accountUsernameEl = document.getElementById("accountUsername");
+const accountEmailEl = document.getElementById("accountEmail");
+const profileNameEl = document.getElementById("profileName");
+const profileRoleEl = document.getElementById("profileRole");
+const profileFocusEl = document.getElementById("profileFocus");
+const coachingToneEl = document.getElementById("coachingTone");
+const voiceQualityEl = document.getElementById("voiceQuality");
+const sessionPaceEl = document.getElementById("sessionPace");
+const saveProfileBtn = document.getElementById("saveProfileBtn");
+const quickPromptBtns = document.querySelectorAll("[data-quick-prompt]");
+
+const styleDirectiveEl = document.getElementById("styleDirective");
+const styleCollaborativeEl = document.getElementById("styleCollaborative");
+const styleFacilitativeEl = document.getElementById("styleFacilitative");
+const stylePassiveEl = document.getElementById("stylePassive");
+
+const currentPasswordEl = document.getElementById("currentPassword");
+const newPasswordEl = document.getElementById("newPassword");
+const confirmPasswordEl = document.getElementById("confirmPassword");
+const changePasswordBtn = document.getElementById("changePasswordBtn");
+
+const dashboardMetaEl = document.getElementById("dashboardMeta");
+const categoryScoreChartEl = document.getElementById("categoryScoreChart");
+const bigFiveChartEl = document.getElementById("bigFiveChart");
+const categoryTrendSvgEl = document.getElementById("categoryTrendSvg");
+const trendLegendEl = document.getElementById("trendLegend");
+const mbtiValueEl = document.getElementById("mbtiValue");
+const discValueEl = document.getElementById("discValue");
+const avgCategoryScoreEl = document.getElementById("avgCategoryScore");
+const activeInterventionsEl = document.getElementById("activeInterventions");
+const interventionSuccessRateEl = document.getElementById(
+  "interventionSuccessRate",
+);
+const feedbackCoverageEl = document.getElementById("feedbackCoverage");
+const feedbackLastAssessmentEl = document.getElementById("feedbackLastAssessment");
+const fallbackAssessmentsEl = document.getElementById("fallbackAssessments");
+const traitListEl = document.getElementById("traitList");
+const strengthListEl = document.getElementById("strengthList");
+const developmentListEl = document.getElementById("developmentList");
+const interventionTableBodyEl = document.getElementById("interventionTableBody");
+const interactionListEl = document.getElementById("interactionList");
+const adminMetaEl = document.getElementById("adminMeta");
+const adminTotalUsersEl = document.getElementById("adminTotalUsers");
+const adminActiveAccountsEl = document.getElementById("adminActiveAccounts");
+const adminInactiveAccountsEl = document.getElementById("adminInactiveAccounts");
+const adminActiveUsersEl = document.getElementById("adminActiveUsers");
+const adminTotalInteractionsEl = document.getElementById("adminTotalInteractions");
+const adminTotalSelfReportsEl = document.getElementById("adminTotalSelfReports");
+const adminTotalFeedbackEl = document.getElementById("adminTotalFeedback");
+const adminAvgFeedbackEl = document.getElementById("adminAvgFeedback");
+const adminDueNudgesEl = document.getElementById("adminDueNudges");
+const adminTopUseCasesEl = document.getElementById("adminTopUseCases");
+const adminUsersTableBodyEl = document.getElementById("adminUsersTableBody");
+const adminDisableRegistrationEl = document.getElementById(
+  "adminDisableRegistration",
+);
+const saveAdminSettingsBtn = document.getElementById("saveAdminSettingsBtn");
+const adminSettingsStatusEl = document.getElementById("adminSettingsStatus");
+
+const meetingNotesInputEl = document.getElementById("meetingNotesInput");
+const selfReportInputEl = document.getElementById("selfReportInput");
+const nudgeTitleInputEl = document.getElementById("nudgeTitleInput");
+const nudgeDueAtInputEl = document.getElementById("nudgeDueAtInput");
+const nudgeMessageInputEl = document.getElementById("nudgeMessageInput");
+const addNudgeBtn = document.getElementById("addNudgeBtn");
+const refreshNudgesBtn = document.getElementById("refreshNudgesBtn");
+const nudgeStatusEl = document.getElementById("nudgeStatus");
+const nudgeListEl = document.getElementById("nudgeList");
+const feedbackHelpfulnessEl = document.getElementById("feedbackHelpfulness");
+const feedbackClarityEl = document.getElementById("feedbackClarity");
+const feedbackConfidenceEl = document.getElementById("feedbackConfidence");
+const feedbackCommentEl = document.getElementById("feedbackComment");
+const submitFeedbackBtn = document.getElementById("submitFeedbackBtn");
+const feedbackStatusEl = document.getElementById("feedbackStatus");
+
+const DEFAULT_STYLE_WEIGHTS = {
+  directive: 2,
+  collaborative: 4,
+  facilitative: 4,
+  passive: 2,
+};
+const COACHING_TONES = ["concise", "challenging", "supportive"];
+const DEFAULT_COACHING_TONE = "supportive";
+
+const CATEGORY_LABELS = {
+  decisionSpeed: "Decision speed",
+  delegation: "Delegation",
+  conversationQuality: "Conversation quality",
+  adaptability: "Adaptability",
+};
+
+const BIG_FIVE_LABELS = {
+  openness: "Openness",
+  conscientiousness: "Conscientiousness",
+  extraversion: "Extraversion",
+  agreeableness: "Agreeableness",
+  neuroticism: "Neuroticism",
+};
+
+const TREND_COLORS = {
+  decisionSpeed: "#0f5f9d",
+  delegation: "#2f855a",
+  conversationQuality: "#b7791f",
+  adaptability: "#8b5cf6",
+};
+const VOICE_NAME_HINTS = [
+  "Samantha",
+  "Google UK English Female",
+  "Microsoft Aria",
+  "Karen",
+  "Moira",
+  "Daniel",
+  "Alex",
+];
+
+const state = {
+  messages: [],
+  listening: false,
+  speaking: false,
+  recognition: null,
+  user: null,
+  view: "chat",
+  voiceQuality: "high",
+  voiceName: "shimmer",
+  sessionPace: "standard",
+  nudges: [],
+  appSettings: {
+    registrationDisabled: true,
+  },
+};
+let preferredVoice = null;
+let lipSyncPulseTimeout = null;
+let lipSyncRaf = null;
+let lipSyncFallbackTimer = null;
+let lipSyncDecayTimer = null;
+let mouthLevel = 0;
+let ttsAudioContext = null;
+let ttsAudioAnalyser = null;
+let ttsAudioData = null;
+let ttsAudioSource = null;
+let ttsAnalyserConnected = false;
+let activeAudioEl = null;
+let speakAbortController = null;
+let speakToken = 0;
+
+const STARTER_PROMPT = "";
+const OPENING_MESSAGE =
+  "Hi, I’m Conscium. What leadership conversation or decision would you like to work through first?";
+const DRAFT_STORAGE_KEY = "conscium.messageDraft";
+
+function setStatus(text) {
+  statusEl.textContent = text;
+}
+
+function setCoachVisualState(mode, label = "") {
+  if (!coachVisualEl || !coachVisualStatusEl) return;
+  const safeMode = ["idle", "speaking", "listening"].includes(mode)
+    ? mode
+    : "idle";
+  coachVisualEl.dataset.state = safeMode;
+  if (label) {
+    coachVisualStatusEl.textContent = label;
+    return;
+  }
+  if (safeMode === "speaking") {
+    coachVisualStatusEl.textContent = "Speaking";
+    return;
+  }
+  if (safeMode === "listening") {
+    coachVisualStatusEl.textContent = "Listening";
+    return;
+  }
+  coachVisualStatusEl.textContent = "Ready to coach";
+}
+
+function refreshCoachVisualState() {
+  if (state.listening) {
+    setCoachVisualState("listening");
+    return;
+  }
+  if (state.speaking) {
+    setCoachVisualState("speaking");
+    return;
+  }
+  setCoachVisualState("idle");
+}
+
+function setMouthLevel(level) {
+  if (!coachAvatarEl) return;
+  const clamped = Math.max(0, Math.min(1, Number(level) || 0));
+  mouthLevel = clamped;
+  coachAvatarEl.style.setProperty("--talk-level", clamped.toFixed(3));
+  coachAvatarEl.classList.toggle("mouth-open", clamped > 0.12);
+  if (coachMouthEl) {
+    coachMouthEl.dataset.open = clamped > 0.12 ? "true" : "false";
+  }
+}
+
+function setMouthOpen(open) {
+  setMouthLevel(open ? 0.92 : 0);
+}
+
+function startFallbackLipMotion({
+  min = 0.14,
+  max = 0.66,
+  intervalMs = 96,
+} = {}) {
+  if (lipSyncFallbackTimer) {
+    clearInterval(lipSyncFallbackTimer);
+    lipSyncFallbackTimer = null;
+  }
+  let phase = Math.random() * Math.PI;
+  lipSyncFallbackTimer = setInterval(() => {
+    phase += 0.85 + Math.random() * 0.45;
+    const wave = (Math.sin(phase) + 1) / 2;
+    const jitter = Math.random() * 0.22;
+    const target = min + (max - min) * (wave * 0.7 + jitter * 0.3);
+    setMouthLevel(target);
+  }, intervalMs);
+}
+
+function pulseMouth(duration = 95, peak = 0.92) {
+  if (lipSyncDecayTimer) {
+    clearTimeout(lipSyncDecayTimer);
+    lipSyncDecayTimer = null;
+  }
+  setMouthLevel(Math.max(mouthLevel, Math.max(0.1, Math.min(1, peak))));
+  if (lipSyncPulseTimeout) {
+    clearTimeout(lipSyncPulseTimeout);
+  }
+  lipSyncPulseTimeout = setTimeout(() => {
+    lipSyncPulseTimeout = null;
+    // If no continuous lip-sync driver is active, relax to closed mouth.
+    if (!lipSyncFallbackTimer && !lipSyncRaf) {
+      lipSyncDecayTimer = setTimeout(() => {
+        setMouthLevel(0);
+        lipSyncDecayTimer = null;
+      }, Math.max(45, Math.round(duration * 0.45)));
+    }
+  }, Math.max(50, duration));
+}
+
+function stopLipSync() {
+  if (lipSyncPulseTimeout) {
+    clearTimeout(lipSyncPulseTimeout);
+    lipSyncPulseTimeout = null;
+  }
+  if (lipSyncDecayTimer) {
+    clearTimeout(lipSyncDecayTimer);
+    lipSyncDecayTimer = null;
+  }
+  if (lipSyncFallbackTimer) {
+    clearInterval(lipSyncFallbackTimer);
+    lipSyncFallbackTimer = null;
+  }
+  if (lipSyncRaf) {
+    cancelAnimationFrame(lipSyncRaf);
+    lipSyncRaf = null;
+  }
+  setMouthLevel(0);
+}
+
+function stopAudioPlayback() {
+  if (activeAudioEl) {
+    activeAudioEl.pause();
+    activeAudioEl.src = "";
+    activeAudioEl = null;
+  }
+  if (speakAbortController) {
+    speakAbortController.abort();
+    speakAbortController = null;
+  }
+}
+
+function ensureAudioAnalyzer(audioEl) {
+  if (!window.AudioContext && !window.webkitAudioContext) return false;
+  if (!ttsAudioContext) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    ttsAudioContext = new Ctx();
+  }
+  if (!ttsAudioAnalyser) {
+    ttsAudioAnalyser = ttsAudioContext.createAnalyser();
+    ttsAudioAnalyser.fftSize = 256;
+    ttsAudioData = new Uint8Array(ttsAudioAnalyser.frequencyBinCount);
+  }
+  try {
+    if (ttsAudioSource) {
+      ttsAudioSource.disconnect();
+      ttsAudioSource = null;
+    }
+    const source = ttsAudioContext.createMediaElementSource(audioEl);
+    source.connect(ttsAudioAnalyser);
+    if (!ttsAnalyserConnected) {
+      ttsAudioAnalyser.connect(ttsAudioContext.destination);
+      ttsAnalyserConnected = true;
+    }
+    ttsAudioSource = source;
+  } catch {
+    return false;
+  }
+  return true;
+}
+
+function startAudioLipSync(audioEl) {
+  stopLipSync();
+  const ready = ensureAudioAnalyzer(audioEl);
+  if (!ready) {
+    startFallbackLipMotion({ min: 0.18, max: 0.72, intervalMs: 88 });
+    return;
+  }
+
+  let smoothed = 0;
+  let phase = Math.random() * Math.PI;
+  const tick = () => {
+    if (!ttsAudioAnalyser || !ttsAudioData || !activeAudioEl) return;
+    ttsAudioAnalyser.getByteFrequencyData(ttsAudioData);
+    let sum = 0;
+    let lowBand = 0;
+    const lowCount = Math.max(1, Math.floor(ttsAudioData.length * 0.26));
+    for (let i = 0; i < ttsAudioData.length; i += 1) {
+      sum += ttsAudioData[i];
+      if (i < lowCount) {
+        lowBand += ttsAudioData[i];
+      }
+    }
+    const avg = sum / Math.max(1, ttsAudioData.length);
+    const lowAvg = lowBand / lowCount;
+    const voiceEnergy = Math.max(
+      0,
+      Math.min(1, (avg - 8) / 38),
+      Math.min(1, (lowAvg - 8) / 34),
+    );
+    phase += 0.23;
+    const rhythmicFloor = 0.06 + ((Math.sin(phase) + 1) / 2) * 0.11;
+    const target = Math.max(rhythmicFloor, voiceEnergy * 1.05);
+    smoothed = smoothed * 0.67 + target * 0.33;
+    setMouthLevel(smoothed);
+    lipSyncRaf = requestAnimationFrame(tick);
+  };
+  lipSyncRaf = requestAnimationFrame(tick);
+}
+
+function setAuthStatus(text) {
+  authStatusEl.textContent = text;
+}
+
+function setProfileStatus(text) {
+  profileStatusEl.textContent = text;
+}
+
+function setPasswordStatus(text) {
+  passwordStatusEl.textContent = text;
+}
+
+function setNudgeStatus(text) {
+  if (nudgeStatusEl) {
+    nudgeStatusEl.textContent = text;
+  }
+}
+
+function setFeedbackStatus(text) {
+  if (feedbackStatusEl) {
+    feedbackStatusEl.textContent = text;
+  }
+}
+
+function setAdminSettingsStatus(text) {
+  if (adminSettingsStatusEl) {
+    adminSettingsStatusEl.textContent = text;
+  }
+}
+
+function normalizeAppSettings(settings) {
+  const source = settings && typeof settings === "object" ? settings : {};
+  return {
+    registrationDisabled:
+      typeof source.registrationDisabled === "boolean"
+        ? source.registrationDisabled
+        : true,
+  };
+}
+
+function applyAppSettings(settings) {
+  state.appSettings = normalizeAppSettings(settings);
+  const disabled = Boolean(state.appSettings.registrationDisabled);
+
+  if (showRegisterBtn) {
+    showRegisterBtn.classList.toggle("hidden", disabled);
+  }
+  if (registerForm) {
+    registerForm.classList.toggle("hidden", disabled);
+  }
+  if (disabled) {
+    showAuthMode("login");
+  }
+  if (adminDisableRegistrationEl) {
+    adminDisableRegistrationEl.checked = disabled;
+  }
+}
+
+function normalizeStyleWeight(value, fallback) {
+  const parsed = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(1, Math.min(5, parsed));
+}
+
+function normalizeCoachStyleWeights(weights) {
+  const source = weights && typeof weights === "object" ? weights : {};
+  return {
+    directive: normalizeStyleWeight(source.directive, DEFAULT_STYLE_WEIGHTS.directive),
+    collaborative: normalizeStyleWeight(
+      source.collaborative,
+      DEFAULT_STYLE_WEIGHTS.collaborative,
+    ),
+    facilitative: normalizeStyleWeight(
+      source.facilitative,
+      DEFAULT_STYLE_WEIGHTS.facilitative,
+    ),
+    passive: normalizeStyleWeight(source.passive, DEFAULT_STYLE_WEIGHTS.passive),
+  };
+}
+
+function applyCoachStyleWeightsToInputs(weights) {
+  const normalized = normalizeCoachStyleWeights(weights);
+  styleDirectiveEl.value = String(normalized.directive);
+  styleCollaborativeEl.value = String(normalized.collaborative);
+  styleFacilitativeEl.value = String(normalized.facilitative);
+  stylePassiveEl.value = String(normalized.passive);
+}
+
+function getCoachStyleWeightsFromInputs() {
+  return normalizeCoachStyleWeights({
+    directive: styleDirectiveEl.value,
+    collaborative: styleCollaborativeEl.value,
+    facilitative: styleFacilitativeEl.value,
+    passive: stylePassiveEl.value,
+  });
+}
+
+function normalizeCoachingTone(value, fallback = DEFAULT_COACHING_TONE) {
+  const candidate = String(value || "")
+    .trim()
+    .toLowerCase();
+  return COACHING_TONES.includes(candidate) ? candidate : fallback;
+}
+
+function canUseCoach() {
+  return Boolean(state.user && !state.user.mustChangePassword);
+}
+
+function setComposerEnabled(enabled) {
+  inputEl.disabled = !enabled;
+  sendBtn.disabled = !enabled;
+  coachStartBtn.disabled = !enabled;
+  micBtn.disabled = !enabled;
+  resetBtn.disabled = !enabled;
+  if (meetingNotesInputEl) meetingNotesInputEl.disabled = !enabled;
+  if (selfReportInputEl) selfReportInputEl.disabled = !enabled;
+}
+
+function setView(nextView) {
+  if (!state.user) return;
+  const allowedViews = new Set(["chat", "settings", "dashboard"]);
+  if (state.user.isAdmin) {
+    allowedViews.add("admin");
+  }
+  state.view = allowedViews.has(nextView) ? nextView : "chat";
+  const showChat = state.view === "chat";
+  const showSettings = state.view === "settings";
+  const showDashboard = state.view === "dashboard";
+  const showAdmin = state.view === "admin";
+  accountPanel.classList.toggle("hidden", !showSettings);
+  dashboardPage.classList.toggle("hidden", !showDashboard);
+  adminPage.classList.toggle("hidden", !showAdmin);
+  chatPage.classList.toggle("hidden", !showChat);
+}
+
+function syncAccessState() {
+  if (!state.user) {
+    passwordRequiredBanner.classList.add("hidden");
+    setComposerEnabled(false);
+    setStatus("Sign in first");
+    setCoachVisualState("idle", "Sign in to begin");
+    return;
+  }
+  if (state.user.mustChangePassword) {
+    passwordRequiredBanner.classList.remove("hidden");
+    setComposerEnabled(false);
+    setStatus("Change password to unlock coaching");
+    setCoachVisualState("idle", "Change password to unlock");
+    return;
+  }
+  passwordRequiredBanner.classList.add("hidden");
+  setComposerEnabled(true);
+  setStatus("Ready");
+  refreshCoachVisualState();
+}
+
+function renderMessage(role, content, track = true) {
+  if (track) state.messages.push({ role, content });
+
+  const wrapper = document.createElement("article");
+  wrapper.className = `msg ${role}`;
+
+  const label = document.createElement("span");
+  label.className = "msg-label";
+  label.textContent = role === "assistant" ? "Conscium" : "You";
+
+  const text = document.createElement("div");
+  text.textContent = content;
+
+  wrapper.appendChild(label);
+  wrapper.appendChild(text);
+  messagesEl.appendChild(wrapper);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function formatDate(value) {
+  const ms = Date.parse(String(value || ""));
+  if (!Number.isFinite(ms)) return "Unknown";
+  return new Date(ms).toLocaleString();
+}
+
+function toLocalDateTimeInputValue(value) {
+  const ms = Date.parse(String(value || ""));
+  if (!Number.isFinite(ms)) return "";
+  const date = new Date(ms);
+  const pad = (num) => String(num).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  const mm = pad(date.getMonth() + 1);
+  const dd = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const min = pad(date.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
+function formatTrend(value) {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric) || numeric === 0) return "flat";
+  return numeric > 0 ? `+${numeric}` : String(numeric);
+}
+
+function formatScore(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "-";
+  return numeric.toFixed(1);
+}
+
+function setListItems(element, items, emptyText) {
+  element.innerHTML = "";
+  if (!Array.isArray(items) || items.length === 0) {
+    const li = document.createElement("li");
+    li.className = "muted";
+    li.textContent = emptyText;
+    element.appendChild(li);
+    return;
+  }
+
+  for (const item of items) {
+    const li = document.createElement("li");
+    li.textContent = String(item);
+    element.appendChild(li);
+  }
+}
+
+function renderBarChart(element, labels, scores, trends = {}) {
+  element.innerHTML = "";
+  for (const [key, label] of Object.entries(labels)) {
+    const score = Number(scores?.[key] || 0);
+    const trend = Number(trends?.[key] || 0);
+    const safeScore = Number.isFinite(score) ? Math.max(1, Math.min(10, score)) : 1;
+
+    const row = document.createElement("div");
+    row.className = "bar-row";
+
+    const heading = document.createElement("div");
+    heading.className = "bar-row-head";
+
+    const labelEl = document.createElement("span");
+    labelEl.textContent = label;
+    heading.appendChild(labelEl);
+
+    const valueEl = document.createElement("span");
+    valueEl.className = trend > 0 ? "trend-up" : trend < 0 ? "trend-down" : "";
+    valueEl.textContent = `${safeScore.toFixed(1)} (${formatTrend(trend)})`;
+    heading.appendChild(valueEl);
+
+    const track = document.createElement("div");
+    track.className = "bar-track";
+    const fill = document.createElement("div");
+    fill.className = "bar-fill";
+    fill.style.width = `${safeScore * 10}%`;
+    track.appendChild(fill);
+
+    row.appendChild(heading);
+    row.appendChild(track);
+    element.appendChild(row);
+  }
+}
+
+function renderTrendLegend() {
+  trendLegendEl.innerHTML = "";
+  for (const [key, label] of Object.entries(CATEGORY_LABELS)) {
+    const item = document.createElement("span");
+    item.className = "trend-key";
+    const dot = document.createElement("span");
+    dot.className = "trend-dot";
+    dot.style.backgroundColor = TREND_COLORS[key] || "#0f5f9d";
+    const text = document.createElement("span");
+    text.textContent = label;
+    item.appendChild(dot);
+    item.appendChild(text);
+    trendLegendEl.appendChild(item);
+  }
+}
+
+function scoreToY(score, height, padding) {
+  const clamped = Math.max(1, Math.min(10, Number(score) || 1));
+  const usable = height - padding * 2;
+  return padding + ((10 - clamped) / 9) * usable;
+}
+
+function buildPath(points) {
+  if (points.length === 0) return "";
+  let path = `M ${points[0][0].toFixed(2)} ${points[0][1].toFixed(2)}`;
+  for (let i = 1; i < points.length; i += 1) {
+    path += ` L ${points[i][0].toFixed(2)} ${points[i][1].toFixed(2)}`;
+  }
+  return path;
+}
+
+function renderTrendChart(logItems) {
+  if (!categoryTrendSvgEl) return;
+  categoryTrendSvgEl.innerHTML = "";
+
+  const width = 640;
+  const height = 260;
+  const padding = 34;
+  const chronological = Array.isArray(logItems)
+    ? [...logItems].reverse().slice(-12)
+    : [];
+
+  if (chronological.length < 2) {
+    categoryTrendSvgEl.innerHTML =
+      '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" class="trend-empty">Complete at least 2 coaching interactions to see trends.</text>';
+    renderTrendLegend();
+    return;
+  }
+
+  const n = chronological.length;
+  const xStep = (width - padding * 2) / (n - 1);
+  let grid = "";
+  for (let score = 2; score <= 10; score += 2) {
+    const y = scoreToY(score, height, padding);
+    grid += `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" class="trend-grid-line" />`;
+    grid += `<text x="${padding - 8}" y="${y + 4}" text-anchor="end" class="trend-axis-label">${score}</text>`;
+  }
+
+  let paths = "";
+  for (const key of Object.keys(CATEGORY_LABELS)) {
+    const color = TREND_COLORS[key] || "#0f5f9d";
+    const points = chronological.map((entry, idx) => {
+      const x = padding + idx * xStep;
+      const y = scoreToY(entry?.categoryScores?.[key], height, padding);
+      return [x, y];
+    });
+    paths += `<path d="${buildPath(points)}" fill="none" stroke="${color}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" />`;
+  }
+
+  categoryTrendSvgEl.innerHTML = `
+    <rect x="${padding}" y="${padding}" width="${width - padding * 2}" height="${height - padding * 2}" class="trend-bg"></rect>
+    ${grid}
+    ${paths}
+    <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="trend-axis-line" />
+  `;
+  renderTrendLegend();
+}
+
+function renderInterventions(interventions) {
+  interventionTableBodyEl.innerHTML = "";
+  if (!Array.isArray(interventions) || interventions.length === 0) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 5;
+    cell.className = "muted";
+    cell.textContent = "No interventions recorded yet.";
+    row.appendChild(cell);
+    interventionTableBodyEl.appendChild(row);
+    return;
+  }
+
+  for (const intervention of interventions) {
+    const row = document.createElement("tr");
+
+    const titleCell = document.createElement("td");
+    titleCell.textContent = intervention.title || "Untitled";
+    row.appendChild(titleCell);
+
+    const statusCell = document.createElement("td");
+    statusCell.textContent = intervention.status || "planned";
+    row.appendChild(statusCell);
+
+    const successCell = document.createElement("td");
+    const success = Number(intervention.successScore);
+    successCell.textContent = Number.isFinite(success) ? success.toFixed(1) : "-";
+    row.appendChild(successCell);
+
+    const targetsCell = document.createElement("td");
+    targetsCell.textContent = Array.isArray(intervention.targetCategories)
+      ? intervention.targetCategories.join(", ")
+      : "-";
+    row.appendChild(targetsCell);
+
+    const updatedCell = document.createElement("td");
+    updatedCell.textContent = formatDate(
+      intervention.updatedAt || intervention.createdAt,
+    );
+    row.appendChild(updatedCell);
+
+    interventionTableBodyEl.appendChild(row);
+  }
+}
+
+function renderInteractions(logItems) {
+  interactionListEl.innerHTML = "";
+  if (!Array.isArray(logItems) || logItems.length === 0) {
+    const li = document.createElement("li");
+    li.className = "muted";
+    li.textContent = "No assessments yet. Complete one coaching interaction.";
+    interactionListEl.appendChild(li);
+    return;
+  }
+
+  for (const item of logItems) {
+    const li = document.createElement("li");
+    const summary = document.createElement("p");
+    summary.textContent = item.summary || "Assessment recorded.";
+    const meta = document.createElement("p");
+    meta.className = "muted";
+    const evidence = [];
+    if (item?.evidenceFlags?.meetingNotesProvided) evidence.push("meeting notes");
+    if (item?.evidenceFlags?.selfReportProvided) evidence.push("self-report");
+    const evidenceLabel = evidence.length ? ` | Evidence: ${evidence.join(", ")}` : "";
+    const modeLabel =
+      item?.assessmentMode === "fallback" ? "Fallback capture" : "AI assessed";
+    meta.textContent = `${formatDate(item.timestamp)} | Progress: ${
+      item.progress || "stable"
+    } | Confidence: ${item.confidence || "medium"} | ${modeLabel}${evidenceLabel}`;
+    li.appendChild(summary);
+    li.appendChild(meta);
+    interactionListEl.appendChild(li);
+  }
+}
+
+function clearFeedbackInputs() {
+  if (feedbackHelpfulnessEl) feedbackHelpfulnessEl.value = "";
+  if (feedbackClarityEl) feedbackClarityEl.value = "";
+  if (feedbackConfidenceEl) feedbackConfidenceEl.value = "";
+  if (feedbackCommentEl) feedbackCommentEl.value = "";
+}
+
+function clearNudgeInputs() {
+  if (nudgeTitleInputEl) nudgeTitleInputEl.value = "";
+  if (nudgeMessageInputEl) nudgeMessageInputEl.value = "";
+  if (nudgeDueAtInputEl) {
+    const defaultDue = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    nudgeDueAtInputEl.value = toLocalDateTimeInputValue(defaultDue.toISOString());
+  }
+}
+
+function normalizeNudgeStatus(value) {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (["scheduled", "due", "completed", "dismissed"].includes(raw)) return raw;
+  return "scheduled";
+}
+
+function renderNudges(nudges) {
+  if (!nudgeListEl) return;
+  nudgeListEl.innerHTML = "";
+  const list = Array.isArray(nudges) ? nudges : [];
+  state.nudges = list;
+  if (!list.length) {
+    const li = document.createElement("li");
+    li.className = "muted";
+    li.textContent = "No nudges scheduled yet.";
+    nudgeListEl.appendChild(li);
+    return;
+  }
+
+  for (const nudge of list) {
+    const li = document.createElement("li");
+    const head = document.createElement("div");
+    head.className = "nudge-item-head";
+
+    const title = document.createElement("strong");
+    title.textContent = nudge.title || "Coaching nudge";
+    head.appendChild(title);
+
+    const status = normalizeNudgeStatus(nudge.status);
+    const statusEl = document.createElement("span");
+    statusEl.className = `nudge-status ${status}`;
+    statusEl.textContent = status;
+    head.appendChild(statusEl);
+
+    li.appendChild(head);
+    const meta = document.createElement("p");
+    meta.className = "muted";
+    meta.textContent = `Due: ${formatDate(nudge.dueAt)}`;
+    li.appendChild(meta);
+
+    if (nudge.message) {
+      const message = document.createElement("p");
+      message.textContent = nudge.message;
+      li.appendChild(message);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "nudge-actions";
+
+    const completeBtn = document.createElement("button");
+    completeBtn.className = "btn small";
+    completeBtn.type = "button";
+    completeBtn.textContent = "Mark complete";
+    completeBtn.disabled = status === "completed";
+    completeBtn.addEventListener("click", () =>
+      updateNudge(nudge.id, { status: "completed" }),
+    );
+    actions.appendChild(completeBtn);
+
+    const dismissBtn = document.createElement("button");
+    dismissBtn.className = "btn small";
+    dismissBtn.type = "button";
+    dismissBtn.textContent = "Dismiss";
+    dismissBtn.disabled = status === "dismissed";
+    dismissBtn.addEventListener("click", () =>
+      updateNudge(nudge.id, { status: "dismissed" }),
+    );
+    actions.appendChild(dismissBtn);
+
+    const reopenBtn = document.createElement("button");
+    reopenBtn.className = "btn small";
+    reopenBtn.type = "button";
+    reopenBtn.textContent = "Reopen";
+    reopenBtn.disabled = status === "scheduled" || status === "due";
+    reopenBtn.addEventListener("click", () =>
+      updateNudge(nudge.id, { status: "scheduled" }),
+    );
+    actions.appendChild(reopenBtn);
+
+    li.appendChild(actions);
+    nudgeListEl.appendChild(li);
+  }
+}
+
+function renderDashboard(dashboard) {
+  const profile = dashboard?.profile || {};
+  const metrics = profile.metrics || {};
+  const retentionDays = Number(dashboard?.retentionDays || 365);
+  const generatedAt = formatDate(dashboard?.generatedAt);
+  dashboardMetaEl.textContent = `Generated ${generatedAt}. Retention: ${retentionDays} days. Last profile update: ${formatDate(
+    profile.updatedAt,
+  )}.`;
+
+  renderBarChart(
+    categoryScoreChartEl,
+    CATEGORY_LABELS,
+    profile.categoryScores || {},
+    profile.categoryTrends || {},
+  );
+  renderBarChart(
+    bigFiveChartEl,
+    BIG_FIVE_LABELS,
+    profile?.personality?.bigFive || {},
+    {},
+  );
+  renderTrendChart(profile.interactionLog || []);
+
+  mbtiValueEl.textContent = profile?.personality?.mbti || "Unknown";
+  discValueEl.textContent = profile?.personality?.disc || "Unknown";
+  avgCategoryScoreEl.textContent = formatScore(metrics.averageCategoryScore);
+  activeInterventionsEl.textContent = String(metrics.activeInterventions || 0);
+  interventionSuccessRateEl.textContent = `${formatScore(
+    metrics.interventionSuccessRate,
+  )}%`;
+
+  const loop = profile?.feedbackLoop || {};
+  const totalInteractions = Number(loop.totalInteractions || 0);
+  const analyzedInteractions = Number(loop.analyzedInteractions || 0);
+  const fallbackInteractions = Number(loop.fallbackInteractions || 0);
+  if (feedbackCoverageEl) {
+    feedbackCoverageEl.textContent = `${analyzedInteractions}/${totalInteractions}`;
+  }
+  if (fallbackAssessmentsEl) {
+    fallbackAssessmentsEl.textContent = String(fallbackInteractions);
+  }
+  if (feedbackLastAssessmentEl) {
+    feedbackLastAssessmentEl.textContent = loop.lastAssessmentAt
+      ? formatDate(loop.lastAssessmentAt)
+      : "Not yet";
+  }
+
+  setListItems(traitListEl, profile.traits, "No traits identified yet.");
+  setListItems(strengthListEl, profile.strengths, "No strengths captured yet.");
+  setListItems(
+    developmentListEl,
+    profile.developmentAreas,
+    "No development areas captured yet.",
+  );
+  renderInterventions(profile.interventions || []);
+  renderInteractions(profile.interactionLog || []);
+}
+
+async function showDashboard() {
+  if (!state.user) return;
+
+  try {
+    const payload = await apiRequest("/api/dashboard", { method: "GET" });
+    if (payload.user) {
+      applyUserToUI(payload.user);
+    }
+    renderDashboard(payload.dashboard || {});
+    setView("dashboard");
+  } catch (err) {
+    setStatus("Dashboard error");
+    renderMessage("assistant", `Error: ${err.message}`, false);
+  }
+}
+
+function formatUseCaseList(items, limit = 3) {
+  if (!Array.isArray(items) || items.length === 0) return "General coaching";
+  return items
+    .slice(0, limit)
+    .map((item) => `${item.label} (${item.count})`)
+    .join(", ");
+}
+
+function renderAdminDashboard(dashboard) {
+  const summary = dashboard?.summary || {};
+  const users = Array.isArray(dashboard?.users) ? dashboard.users : [];
+  const generatedAt = formatDate(dashboard?.generatedAt);
+  if (adminMetaEl) {
+    adminMetaEl.textContent = `Generated ${generatedAt}. Admin-only view across all accounts.`;
+  }
+  if (adminTotalUsersEl) {
+    adminTotalUsersEl.textContent = String(summary.totalUsers || 0);
+  }
+  if (adminActiveAccountsEl) {
+    adminActiveAccountsEl.textContent = String(summary.activeAccounts || 0);
+  }
+  if (adminInactiveAccountsEl) {
+    adminInactiveAccountsEl.textContent = String(summary.inactiveAccounts || 0);
+  }
+  if (adminActiveUsersEl) {
+    adminActiveUsersEl.textContent = String(summary.activeUsers30d || 0);
+  }
+  if (adminTotalInteractionsEl) {
+    adminTotalInteractionsEl.textContent = String(summary.totalInteractions || 0);
+  }
+  if (adminTotalSelfReportsEl) {
+    adminTotalSelfReportsEl.textContent = String(summary.totalSelfReports || 0);
+  }
+  if (adminTotalFeedbackEl) {
+    adminTotalFeedbackEl.textContent = String(summary.totalFeedbackSubmissions || 0);
+  }
+  if (adminAvgFeedbackEl) {
+    adminAvgFeedbackEl.textContent = Number.isFinite(summary.averageFeedbackScore)
+      ? formatScore(summary.averageFeedbackScore)
+      : "-";
+  }
+  if (adminDueNudgesEl) {
+    adminDueNudgesEl.textContent = String(summary.totalNudgesDue || 0);
+  }
+  if (adminDisableRegistrationEl) {
+    adminDisableRegistrationEl.checked = Boolean(summary.registrationDisabled);
+  }
+  if (adminTopUseCasesEl) {
+    const labels = Array.isArray(summary.topUseCases)
+      ? summary.topUseCases.map((item) => `${item.label}: ${item.count}`)
+      : [];
+    setListItems(adminTopUseCasesEl, labels, "No use-case data yet.");
+  }
+
+  if (!adminUsersTableBodyEl) return;
+  adminUsersTableBodyEl.innerHTML = "";
+
+  if (!users.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 9;
+    cell.className = "muted";
+    cell.textContent = "No users found.";
+    row.appendChild(cell);
+    adminUsersTableBodyEl.appendChild(row);
+    return;
+  }
+
+  for (const user of users) {
+    const row = document.createElement("tr");
+
+    const userCell = document.createElement("td");
+    userCell.textContent = `${user.displayName || user.username || "Unknown"} (@${
+      user.username || "-"
+    })`;
+    const userMeta = document.createElement("p");
+    userMeta.className = "muted";
+    userMeta.textContent = `${user.role || "No role"} | Created ${formatDate(
+      user.createdAt,
+    )}`;
+    userCell.appendChild(userMeta);
+    row.appendChild(userCell);
+
+    const statusCell = document.createElement("td");
+    const statusPill = document.createElement("span");
+    statusPill.className = `status-pill ${user.isActive ? "active" : "inactive"}`;
+    statusPill.textContent = user.isActive ? "Active" : "Inactive";
+    statusCell.appendChild(statusPill);
+    const statusMeta = document.createElement("p");
+    statusMeta.className = "muted";
+    const nudgeSummary = user.nudgeSummary || {};
+    statusMeta.textContent = `Must change password: ${
+      user.mustChangePassword ? "Yes" : "No"
+    } | Nudges due: ${nudgeSummary.due || 0}`;
+    statusCell.appendChild(statusMeta);
+    row.appendChild(statusCell);
+
+    const usageCell = document.createElement("td");
+    const usage = user.usage || {};
+    usageCell.textContent = `${usage.totalInteractions || 0} interactions`;
+    const usageMeta = document.createElement("p");
+    usageMeta.className = "muted";
+    usageMeta.textContent = `Busy ${
+      usage?.sessionPace?.busy || 0
+    } | Standard ${usage?.sessionPace?.standard || 0} | Fallback ${
+      usage.fallbackAssessments || 0
+    }`;
+    usageCell.appendChild(usageMeta);
+    row.appendChild(usageCell);
+
+    const usedForCell = document.createElement("td");
+    usedForCell.textContent = formatUseCaseList(user.usedFor, 3);
+    const usedForMeta = document.createElement("p");
+    usedForMeta.className = "muted";
+    usedForMeta.textContent = `Focus: ${user.focusAreas || "Not set"}`;
+    usedForCell.appendChild(usedForMeta);
+    row.appendChild(usedForCell);
+
+    const personalityCell = document.createElement("td");
+    const personality = user.personality || {};
+    const bigFive = personality.bigFive || {};
+    personalityCell.textContent = `MBTI ${personality.mbti || "Unknown"} | DISC ${
+      personality.disc || "Unknown"
+    }`;
+    const personalityMeta = document.createElement("p");
+    personalityMeta.className = "muted";
+    personalityMeta.textContent = `O:${bigFive.openness ?? "-"} C:${
+      bigFive.conscientiousness ?? "-"
+    } E:${bigFive.extraversion ?? "-"} A:${bigFive.agreeableness ?? "-"} N:${
+      bigFive.neuroticism ?? "-"
+    }`;
+    personalityCell.appendChild(personalityMeta);
+    row.appendChild(personalityCell);
+
+    const scoreCell = document.createElement("td");
+    const scores = user.categoryScores || {};
+    const metrics = user.metrics || {};
+    scoreCell.textContent = `Avg ${formatScore(metrics.averageCategoryScore)}`;
+    const scoreMeta = document.createElement("p");
+    scoreMeta.className = "muted";
+    scoreMeta.textContent = `D:${scores.decisionSpeed ?? "-"} Del:${
+      scores.delegation ?? "-"
+    } C:${scores.conversationQuality ?? "-"} A:${scores.adaptability ?? "-"}`;
+    scoreCell.appendChild(scoreMeta);
+    row.appendChild(scoreCell);
+
+    const feedbackCell = document.createElement("td");
+    const feedback = user.feedback || {};
+    const coacheeFeedback = Array.isArray(feedback.recentCoacheeFeedback)
+      ? feedback.recentCoacheeFeedback
+      : [];
+    const selfReports = Array.isArray(feedback.recentSelfReports)
+      ? feedback.recentSelfReports
+      : [];
+    if (coacheeFeedback.length) {
+      const latest = coacheeFeedback[0] || {};
+      const scores = [latest.helpfulness, latest.clarity, latest.confidence]
+        .filter((value) => Number.isFinite(value))
+        .join("/");
+      feedbackCell.textContent = latest.comment || `Scores: ${scores || "-"}`;
+      const feedbackMeta = document.createElement("p");
+      feedbackMeta.className = "muted";
+      feedbackMeta.textContent = `${formatDate(latest.timestamp)} | Ratings: ${
+        usage.feedbackSubmissionCount || 0
+      } | Avg ${Number.isFinite(usage.averageFeedbackScore) ? formatScore(usage.averageFeedbackScore) : "-"}`;
+      feedbackCell.appendChild(feedbackMeta);
+    } else if (!selfReports.length) {
+      feedbackCell.textContent = "No feedback yet";
+      const feedbackMeta = document.createElement("p");
+      feedbackMeta.className = "muted";
+      feedbackMeta.textContent = `Self-reports: ${usage.selfReportCount || 0} | Ratings: ${
+        usage.feedbackSubmissionCount || 0
+      }`;
+      feedbackCell.appendChild(feedbackMeta);
+    } else {
+      feedbackCell.textContent = selfReports[0]?.text || "Feedback captured";
+      const feedbackMeta = document.createElement("p");
+      feedbackMeta.className = "muted";
+      feedbackMeta.textContent = `${formatDate(
+        selfReports[0]?.timestamp,
+      )} | Self-reports: ${usage.selfReportCount || 0} | Ratings: ${
+        usage.feedbackSubmissionCount || 0
+      }`;
+      feedbackCell.appendChild(feedbackMeta);
+    }
+    row.appendChild(feedbackCell);
+
+    const lastCell = document.createElement("td");
+    lastCell.textContent = formatDate(user?.usage?.lastInteractionAt);
+    row.appendChild(lastCell);
+
+    const actionsCell = document.createElement("td");
+    const actions = document.createElement("div");
+    actions.className = "admin-actions";
+
+    const toggleActiveBtn = document.createElement("button");
+    toggleActiveBtn.className = "btn small";
+    toggleActiveBtn.type = "button";
+    toggleActiveBtn.textContent = user.isActive ? "Deactivate" : "Activate";
+    toggleActiveBtn.disabled = user.id === state.user?.id && user.isActive;
+    toggleActiveBtn.addEventListener("click", () =>
+      runAdminUserAction(user.id, user.isActive ? "deactivate" : "activate"),
+    );
+    actions.appendChild(toggleActiveBtn);
+
+    const forceResetBtn = document.createElement("button");
+    forceResetBtn.className = "btn small";
+    forceResetBtn.type = "button";
+    forceResetBtn.textContent = "Force reset";
+    forceResetBtn.addEventListener("click", () =>
+      runAdminUserAction(user.id, "force_password_reset"),
+    );
+    actions.appendChild(forceResetBtn);
+
+    const tempPasswordBtn = document.createElement("button");
+    tempPasswordBtn.className = "btn small";
+    tempPasswordBtn.type = "button";
+    tempPasswordBtn.textContent = "Set temp password";
+    tempPasswordBtn.addEventListener("click", () => {
+      const tempPassword = window.prompt(
+        `Set temporary password for @${user.username} (min 10 chars):`,
+      );
+      if (!tempPassword) return;
+      runAdminUserAction(user.id, "reset_password", { newPassword: tempPassword });
+    });
+    actions.appendChild(tempPasswordBtn);
+
+    actionsCell.appendChild(actions);
+    row.appendChild(actionsCell);
+
+    adminUsersTableBodyEl.appendChild(row);
+  }
+}
+
+async function runAdminUserAction(userId, action, extra = {}) {
+  if (!state.user || !state.user.isAdmin) return;
+  setStatus("Applying admin action...");
+  try {
+    const payload = await apiRequest(
+      `/api/admin/users/${encodeURIComponent(userId)}/action`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          action,
+          ...extra,
+        }),
+      },
+    );
+    if (payload.settings) {
+      applyAppSettings(payload.settings);
+    }
+    if (payload.user) {
+      applyUserToUI(payload.user);
+    }
+    if (payload.dashboard) {
+      renderAdminDashboard(payload.dashboard);
+    } else {
+      await showAdminDashboard();
+    }
+    setStatus("Admin action applied.");
+  } catch (err) {
+    setStatus(`Admin action failed: ${err.message}`);
+  }
+}
+
+async function saveAdminSettings() {
+  if (!state.user || !state.user.isAdmin) return;
+  const registrationDisabled = Boolean(adminDisableRegistrationEl?.checked);
+  setAdminSettingsStatus("Saving...");
+  if (saveAdminSettingsBtn) saveAdminSettingsBtn.disabled = true;
+  try {
+    const payload = await apiRequest("/api/admin/settings", {
+      method: "PUT",
+      body: JSON.stringify({ registrationDisabled }),
+    });
+    if (payload.settings) {
+      applyAppSettings(payload.settings);
+    }
+    if (payload.user) {
+      applyUserToUI(payload.user);
+    }
+    if (payload.dashboard) {
+      renderAdminDashboard(payload.dashboard);
+    }
+    setAdminSettingsStatus("Admin settings saved.");
+  } catch (err) {
+    setAdminSettingsStatus(err.message);
+  } finally {
+    if (saveAdminSettingsBtn) saveAdminSettingsBtn.disabled = false;
+  }
+}
+
+async function showAdminDashboard() {
+  if (!state.user || !state.user.isAdmin) return;
+  try {
+    const payload = await apiRequest("/api/admin/dashboard", { method: "GET" });
+    if (payload.settings) {
+      applyAppSettings(payload.settings);
+    }
+    if (payload.user) {
+      applyUserToUI(payload.user);
+    }
+    renderAdminDashboard(payload.dashboard || {});
+    setView("admin");
+  } catch (err) {
+    setStatus("Admin dashboard error");
+    renderMessage("assistant", `Error: ${err.message}`, false);
+  }
+}
+
+function buildFeedbackPayload() {
+  const toScore = (element) => {
+    const raw = element ? Number.parseInt(String(element.value || "").trim(), 10) : NaN;
+    if (!Number.isFinite(raw)) return null;
+    return Math.max(1, Math.min(10, raw));
+  };
+  return {
+    helpfulness: toScore(feedbackHelpfulnessEl),
+    clarity: toScore(feedbackClarityEl),
+    confidence: toScore(feedbackConfidenceEl),
+    comment: feedbackCommentEl ? feedbackCommentEl.value.trim() : "",
+  };
+}
+
+function hasFeedbackValue(payload) {
+  if (!payload || typeof payload !== "object") return false;
+  return (
+    Number.isFinite(payload.helpfulness) ||
+    Number.isFinite(payload.clarity) ||
+    Number.isFinite(payload.confidence) ||
+    Boolean(payload.comment)
+  );
+}
+
+async function submitSessionFeedback() {
+  if (!state.user) return;
+  const payload = buildFeedbackPayload();
+  if (!hasFeedbackValue(payload)) {
+    setFeedbackStatus("Add at least one score or a comment.");
+    return;
+  }
+  setFeedbackStatus("Submitting...");
+  if (submitFeedbackBtn) submitFeedbackBtn.disabled = true;
+
+  try {
+    const response = await apiRequest("/api/feedback", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    if (response.user) {
+      applyUserToUI(response.user);
+    }
+    if (response.dashboard && state.view === "dashboard") {
+      renderDashboard(response.dashboard);
+    }
+    clearFeedbackInputs();
+    setFeedbackStatus("Feedback saved.");
+  } catch (err) {
+    setFeedbackStatus(err.message);
+  } finally {
+    if (submitFeedbackBtn) submitFeedbackBtn.disabled = false;
+  }
+}
+
+async function loadNudges({ quiet = false } = {}) {
+  if (!state.user) return;
+  if (!quiet) setNudgeStatus("Loading nudges...");
+  try {
+    const payload = await apiRequest("/api/nudges", { method: "GET" });
+    const list = Array.isArray(payload.nudges) ? payload.nudges : [];
+    renderNudges(list);
+    const summary = payload.summary || {};
+    const due = Number(summary.due || 0);
+    if (!quiet) {
+      setNudgeStatus(
+        due > 0
+          ? `${due} nudge${due === 1 ? "" : "s"} due now.`
+          : "Nudges updated.",
+      );
+    }
+  } catch (err) {
+    if (!quiet) setNudgeStatus(err.message);
+  }
+}
+
+async function createNudge() {
+  if (!state.user) return;
+  const title = nudgeTitleInputEl ? nudgeTitleInputEl.value.trim() : "";
+  const message = nudgeMessageInputEl ? nudgeMessageInputEl.value.trim() : "";
+  const dueAtRaw = nudgeDueAtInputEl ? nudgeDueAtInputEl.value : "";
+  if (!title && !message) {
+    setNudgeStatus("Add a title or message for the nudge.");
+    return;
+  }
+  setNudgeStatus("Scheduling...");
+  if (addNudgeBtn) addNudgeBtn.disabled = true;
+
+  try {
+    const payload = await apiRequest("/api/nudges", {
+      method: "POST",
+      body: JSON.stringify({
+        title,
+        message,
+        dueAt: dueAtRaw ? new Date(dueAtRaw).toISOString() : "",
+      }),
+    });
+    if (payload.user) {
+      applyUserToUI(payload.user);
+    }
+    renderNudges(Array.isArray(payload.nudges) ? payload.nudges : []);
+    clearNudgeInputs();
+    setNudgeStatus("Nudge scheduled.");
+  } catch (err) {
+    setNudgeStatus(err.message);
+  } finally {
+    if (addNudgeBtn) addNudgeBtn.disabled = false;
+  }
+}
+
+async function updateNudge(nudgeId, updates) {
+  if (!state.user) return;
+  setNudgeStatus("Updating nudge...");
+  try {
+    const payload = await apiRequest(`/api/nudges/${encodeURIComponent(nudgeId)}`, {
+      method: "PUT",
+      body: JSON.stringify(updates || {}),
+    });
+    if (payload.user) {
+      applyUserToUI(payload.user);
+    }
+    renderNudges(Array.isArray(payload.nudges) ? payload.nudges : []);
+    setNudgeStatus("Nudge updated.");
+  } catch (err) {
+    setNudgeStatus(err.message);
+  }
+}
+
+function normalizeSpeechText(text) {
+  return String(text || "")
+    .replace(/\*\*/g, "")
+    .replace(/`/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function splitSpeechChunks(text, maxChars = 220) {
+  const chunks = [];
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  let current = "";
+  for (const sentence of sentences) {
+    if (!sentence) continue;
+    if (!current) {
+      current = sentence;
+      continue;
+    }
+    if ((current + " " + sentence).length <= maxChars) {
+      current += ` ${sentence}`;
+    } else {
+      chunks.push(current);
+      current = sentence;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks.length ? chunks : [text];
+}
+
+function pickPreferredVoice() {
+  if (!("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  if (preferredVoice && voices.some((v) => v.voiceURI === preferredVoice.voiceURI)) {
+    return preferredVoice;
+  }
+
+  for (const hint of VOICE_NAME_HINTS) {
+    const found = voices.find(
+      (voice) =>
+        voice.lang.toLowerCase().startsWith("en") &&
+        voice.name.toLowerCase().includes(hint.toLowerCase()),
+    );
+    if (found) {
+      preferredVoice = found;
+      return found;
+    }
+  }
+
+  const fallback =
+    voices.find((voice) => voice.default && voice.lang.toLowerCase().startsWith("en")) ||
+    voices.find((voice) => voice.lang.toLowerCase().startsWith("en")) ||
+    voices[0];
+  preferredVoice = fallback || null;
+  return preferredVoice;
+}
+
+function getVoiceQuality() {
+  const raw = String(voiceQualityEl?.value || state.voiceQuality || "high")
+    .trim()
+    .toLowerCase();
+  if (raw === "low" || raw === "medium" || raw === "high") {
+    return raw;
+  }
+  return "high";
+}
+
+function getSpeechMode() {
+  return getVoiceQuality() === "high" ? "high" : "browser";
+}
+
+function getSpeechVoice() {
+  const voice = String(speechVoiceEl?.value || state.voiceName || "shimmer")
+    .trim()
+    .toLowerCase();
+  return /^[a-z0-9_-]{2,40}$/.test(voice) ? voice : "shimmer";
+}
+
+function getSessionPace() {
+  const raw = String(sessionPaceEl?.value || state.sessionPace || "standard")
+    .trim()
+    .toLowerCase();
+  return raw === "busy" ? "busy" : "standard";
+}
+
+function persistDraft() {
+  try {
+    localStorage.setItem(DRAFT_STORAGE_KEY, String(inputEl?.value || ""));
+  } catch {
+    // localStorage may be unavailable in privacy mode.
+  }
+}
+
+function clearDraft() {
+  try {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch {
+    // localStorage may be unavailable in privacy mode.
+  }
+}
+
+function loadDraft() {
+  try {
+    const draft = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (typeof draft === "string" && draft) {
+      inputEl.value = draft;
+    }
+  } catch {
+    // localStorage may be unavailable in privacy mode.
+  }
+}
+
+function persistSpeechSettings() {
+  try {
+    localStorage.setItem("conscium.voiceQuality", getVoiceQuality());
+    localStorage.setItem("conscium.voiceName", getSpeechVoice());
+    localStorage.setItem("conscium.sessionPace", getSessionPace());
+  } catch {
+    // localStorage may be unavailable in privacy mode.
+  }
+}
+
+function loadSpeechSettings() {
+  try {
+    const quality = localStorage.getItem("conscium.voiceQuality");
+    const mode = localStorage.getItem("conscium.voiceMode");
+    const voiceName = localStorage.getItem("conscium.voiceName");
+    const pace = localStorage.getItem("conscium.sessionPace");
+    if (voiceQualityEl) {
+      let nextQuality = "";
+      if (quality) {
+        nextQuality = ["low", "medium", "high"].includes(quality.toLowerCase())
+          ? quality.toLowerCase()
+          : "";
+      }
+      if (!nextQuality && mode) {
+        // Backwards compatibility for previous setting.
+        nextQuality = mode.toLowerCase() === "high" ? "high" : "medium";
+      }
+      if (nextQuality) {
+        voiceQualityEl.value = nextQuality;
+      }
+    }
+    if (voiceName && speechVoiceEl) {
+      if (
+        Array.from(speechVoiceEl.options).some(
+          (opt) => opt.value.toLowerCase() === voiceName.toLowerCase(),
+        )
+      ) {
+        speechVoiceEl.value = voiceName.toLowerCase();
+      }
+    }
+    if (pace && sessionPaceEl) {
+      sessionPaceEl.value = pace.toLowerCase() === "busy" ? "busy" : "standard";
+    }
+  } catch {
+    // localStorage may be unavailable in privacy mode.
+  }
+  state.voiceQuality = getVoiceQuality();
+  state.voiceName = getSpeechVoice();
+  state.sessionPace = getSessionPace();
+}
+
+async function requestHighFidelityAudioChunk(text, token) {
+  if (!text) return null;
+  if (!speakAbortController || speakAbortController.signal.aborted) {
+    speakAbortController = new AbortController();
+  }
+  const response = await fetch("/api/voice", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    signal: speakAbortController.signal,
+    body: JSON.stringify({
+      text,
+      voice: state.voiceName,
+      format: "mp3",
+      speed: 1,
+      instructions:
+        "Natural, warm, human executive-coach voice with measured pacing and clear articulation.",
+    }),
+  });
+  if (!response.ok) {
+    const raw = await response.text();
+    let payload = {};
+    try {
+      payload = raw ? JSON.parse(raw) : {};
+    } catch {
+      payload = {};
+    }
+    throw new Error(payload.error || raw || `Voice request failed (${response.status}).`);
+  }
+  if (token !== speakToken) return null;
+  return response.blob();
+}
+
+async function playAudioBlob(blob, token) {
+  if (!blob || token !== speakToken) return;
+  const objectUrl = URL.createObjectURL(blob);
+  const audio = new Audio(objectUrl);
+  activeAudioEl = audio;
+  let cleanupDone = false;
+  const cleanup = () => {
+    if (cleanupDone) return;
+    cleanupDone = true;
+    stopLipSync();
+    URL.revokeObjectURL(objectUrl);
+    if (activeAudioEl === audio) {
+      activeAudioEl = null;
+    }
+  };
+
+  await new Promise((resolve, reject) => {
+    audio.onended = () => {
+      cleanup();
+      resolve();
+    };
+    audio.onerror = () => {
+      cleanup();
+      reject(new Error("Audio playback failed."));
+    };
+    audio.onplay = () => {
+      startAudioLipSync(audio);
+    };
+    if (ttsAudioContext && ttsAudioContext.state === "suspended") {
+      ttsAudioContext.resume().catch(() => {});
+    }
+    audio.play().catch((err) => {
+      cleanup();
+      reject(err);
+    });
+  });
+}
+
+async function speakWithHighFidelity(text, token) {
+  const chunks = splitSpeechChunks(text, 320);
+  for (const chunk of chunks) {
+    if (token !== speakToken) return;
+    const audioBlob = await requestHighFidelityAudioChunk(chunk, token);
+    if (!audioBlob || token !== speakToken) return;
+    await playAudioBlob(audioBlob, token);
+  }
+}
+
+function speakWithBrowser(text, token, quality = "medium") {
+  if (!("speechSynthesis" in window)) {
+    return Promise.reject(new Error("Browser speech synthesis is unavailable."));
+  }
+  const voice = pickPreferredVoice();
+  const chunks = splitSpeechChunks(text, 210);
+  const normalizedQuality =
+    quality === "low" || quality === "medium" || quality === "high"
+      ? quality
+      : "medium";
+  const rateMap = {
+    low: 1.03,
+    medium: 0.95,
+    high: 0.9,
+  };
+  const pitchMap = {
+    low: 1.0,
+    medium: 1.04,
+    high: 1.03,
+  };
+  const motionMap = {
+    low: { min: 0.1, max: 0.42, intervalMs: 124, peak: 0.58 },
+    medium: { min: 0.14, max: 0.6, intervalMs: 102, peak: 0.78 },
+    high: { min: 0.18, max: 0.74, intervalMs: 86, peak: 0.92 },
+  };
+  let idx = 0;
+
+  return new Promise((resolve, reject) => {
+    const speakNext = () => {
+      if (token !== speakToken) {
+        resolve();
+        return;
+      }
+      if (idx >= chunks.length) {
+        stopLipSync();
+        resolve();
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(chunks[idx]);
+      idx += 1;
+      if (voice) utterance.voice = voice;
+      utterance.rate = rateMap[normalizedQuality];
+      utterance.pitch = pitchMap[normalizedQuality];
+      const motion = motionMap[normalizedQuality];
+      utterance.onstart = () => {
+        startFallbackLipMotion(motion);
+        pulseMouth(110, motion.peak);
+      };
+      utterance.onboundary = (event) => {
+        const boundaryType = String(event?.name || "").toLowerCase();
+        if (boundaryType === "word" || Number(event?.charLength || 0) > 0) {
+          pulseMouth(95, motion.peak);
+        }
+      };
+      utterance.onerror = () => {
+        stopLipSync();
+        reject(new Error("Browser speech playback failed."));
+      };
+      utterance.onend = () => {
+        speakNext();
+      };
+      window.speechSynthesis.speak(utterance);
+    };
+    speakNext();
+  });
+}
+
+async function speak(text) {
+  const spoken = normalizeSpeechText(text);
+  if (!spoken) return;
+
+  stopSpeaking();
+  const token = ++speakToken;
+  state.speaking = true;
+  refreshCoachVisualState();
+
+  state.voiceQuality = getVoiceQuality();
+  state.voiceName = getSpeechVoice();
+  persistSpeechSettings();
+  const speechMode = getSpeechMode();
+
+  try {
+    if (speechMode === "high") {
+      await speakWithHighFidelity(spoken, token);
+    } else {
+      await speakWithBrowser(spoken, token, state.voiceQuality);
+    }
+  } catch (err) {
+    if (token === speakToken && speechMode === "high") {
+      setStatus("High-fidelity voice unavailable, using browser voice.");
+      try {
+        await speakWithBrowser(spoken, token, "medium");
+      } catch (fallbackErr) {
+        if (token === speakToken) {
+          setStatus(`Voice error: ${fallbackErr.message}`);
+        }
+      }
+    } else if (token === speakToken) {
+      setStatus(`Voice error: ${err.message}`);
+    }
+  } finally {
+    if (token === speakToken) {
+      stopLipSync();
+      stopAudioPlayback();
+      state.speaking = false;
+      refreshCoachVisualState();
+    }
+  }
+}
+
+function stopSpeaking() {
+  speakToken += 1;
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
+  stopAudioPlayback();
+  stopLipSync();
+  state.speaking = false;
+  refreshCoachVisualState();
+}
+
+function clearMessages() {
+  state.messages = [];
+  messagesEl.innerHTML = "";
+}
+
+function resetChat({ preserveDraft = false } = {}) {
+  clearMessages();
+  stopSpeaking();
+  clearFeedbackInputs();
+  setFeedbackStatus("");
+  if (preserveDraft) {
+    loadDraft();
+  } else {
+    inputEl.value = STARTER_PROMPT;
+    clearDraft();
+  }
+  if (meetingNotesInputEl) meetingNotesInputEl.value = "";
+  if (selfReportInputEl) selfReportInputEl.value = "";
+  syncAccessState();
+  if (canUseCoach()) {
+    renderMessage("assistant", OPENING_MESSAGE, true);
+  }
+  if (preserveDraft && inputEl.value.trim()) {
+    setStatus("Draft restored");
+  }
+  refreshCoachVisualState();
+  inputEl.focus();
+}
+
+function showSplashPage() {
+  mainHeader.classList.add("hidden");
+  splashPage.classList.remove("hidden");
+  authPanel.classList.add("hidden");
+  accountPanel.classList.add("hidden");
+  dashboardPage.classList.add("hidden");
+  adminPage.classList.add("hidden");
+  chatPage.classList.add("hidden");
+  dashboardMenuBtn.classList.add("hidden");
+  adminMenuBtn.classList.add("hidden");
+  accountMenuBtn.classList.add("hidden");
+  setCoachVisualState("idle", "Ready to coach");
+}
+
+function showAuthPage() {
+  mainHeader.classList.remove("hidden");
+  splashPage.classList.add("hidden");
+  authPanel.classList.remove("hidden");
+  accountPanel.classList.add("hidden");
+  dashboardPage.classList.add("hidden");
+  adminPage.classList.add("hidden");
+  chatPage.classList.add("hidden");
+  dashboardMenuBtn.classList.add("hidden");
+  adminMenuBtn.classList.add("hidden");
+  accountMenuBtn.classList.add("hidden");
+  setCoachVisualState("idle", "Ready to coach");
+}
+
+function applyUserToUI(user) {
+  state.user = user;
+  accountNameEl.textContent = user.displayName || "Account";
+  accountUsernameEl.textContent = user.username ? `@${user.username}` : "";
+  accountEmailEl.textContent = user.email || "";
+  profileNameEl.value = user.displayName || "";
+  profileRoleEl.value = user.role || "";
+  profileFocusEl.value = user.focusAreas || "";
+  coachingToneEl.value = normalizeCoachingTone(user.coachingTone);
+  if (sessionPaceEl) {
+    sessionPaceEl.value = getSessionPace();
+  }
+  if (adminMenuBtn) {
+    adminMenuBtn.classList.toggle("hidden", !Boolean(user.isAdmin));
+  }
+  applyCoachStyleWeightsToInputs(user.coachStyleWeights);
+  const nudgeSummary = user.nudgeSummary || {};
+  if (nudgeStatusEl && state.user) {
+    const due = Number(nudgeSummary.due || 0);
+    if (due > 0) {
+      setNudgeStatus(`${due} nudge${due === 1 ? "" : "s"} due.`);
+    } else if (Number(nudgeSummary.total || 0) > 0) {
+      setNudgeStatus(`${nudgeSummary.total} nudge${nudgeSummary.total === 1 ? "" : "s"} scheduled.`);
+    }
+  }
+  setPasswordStatus(
+    user.mustChangePassword ? "Password change required now." : "",
+  );
+  syncAccessState();
+}
+
+function showAuthMode(mode) {
+  const registrationDisabled = Boolean(state.appSettings?.registrationDisabled);
+  if (mode === "login") {
+    loginForm.classList.remove("hidden");
+    registerForm.classList.add("hidden");
+    showLoginBtn.classList.add("primary");
+    showRegisterBtn.classList.remove("primary");
+    return;
+  }
+  if (registrationDisabled) {
+    loginForm.classList.remove("hidden");
+    registerForm.classList.add("hidden");
+    showLoginBtn.classList.add("primary");
+    showRegisterBtn.classList.remove("primary");
+    setAuthStatus("New account creation is currently disabled.");
+    return;
+  }
+  loginForm.classList.add("hidden");
+  registerForm.classList.remove("hidden");
+  showLoginBtn.classList.remove("primary");
+  showRegisterBtn.classList.add("primary");
+}
+
+function showAuthenticatedUI(user, settings = null) {
+  mainHeader.classList.remove("hidden");
+  splashPage.classList.add("hidden");
+  authPanel.classList.add("hidden");
+  dashboardMenuBtn.classList.remove("hidden");
+  adminMenuBtn.classList.toggle("hidden", !Boolean(user.isAdmin));
+  accountMenuBtn.classList.remove("hidden");
+  setAuthStatus("");
+  setProfileStatus("Profile loaded.");
+  if (settings) {
+    applyAppSettings(settings);
+  }
+  applyUserToUI(user);
+  resetChat({ preserveDraft: true });
+  clearFeedbackInputs();
+  setFeedbackStatus("");
+  clearNudgeInputs();
+  loadNudges({ quiet: true });
+  if (user.mustChangePassword) {
+    setView("settings");
+  } else {
+    setView("chat");
+  }
+}
+
+async function runQuickPrompt(prompt) {
+  if (!prompt) return;
+  if (!state.user) {
+    setStatus("Sign in first");
+    return;
+  }
+  if (!canUseCoach()) {
+    setStatus("Change password to unlock coaching");
+    return;
+  }
+  if (sendBtn.disabled || coachStartBtn.disabled) return;
+  inputEl.value = String(prompt).trim();
+  persistDraft();
+  await sendMessage();
+}
+
+function showSignedOutUI({ showSplash = true } = {}) {
+  state.user = null;
+  state.view = "chat";
+  state.nudges = [];
+  stopSpeaking();
+  state.listening = false;
+  clearMessages();
+  inputEl.value = "";
+  if (meetingNotesInputEl) meetingNotesInputEl.value = "";
+  if (selfReportInputEl) selfReportInputEl.value = "";
+  setAuthStatus("Sign in to start coaching.");
+  setProfileStatus("");
+  setPasswordStatus("");
+  setNudgeStatus("");
+  setFeedbackStatus("");
+  setAdminSettingsStatus("");
+  clearFeedbackInputs();
+  if (nudgeListEl) nudgeListEl.innerHTML = "";
+  coachingToneEl.value = DEFAULT_COACHING_TONE;
+  if (sessionPaceEl) sessionPaceEl.value = getSessionPace();
+  state.sessionPace = getSessionPace();
+  applyCoachStyleWeightsToInputs(DEFAULT_STYLE_WEIGHTS);
+  if (showSplash) {
+    showSplashPage();
+  } else {
+    showAuthPage();
+  }
+  adminPage.classList.add("hidden");
+  adminMenuBtn.classList.add("hidden");
+  syncAccessState();
+  setCoachVisualState("idle", "Sign in to begin");
+  applyAppSettings(state.appSettings);
+}
+
+async function apiRequest(url, options = {}) {
+  let response;
+  try {
+    response = await fetch(url, {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+    });
+  } catch (err) {
+    throw new Error(
+      `Network error: ${err.message}. Is the local server running on ${window.location.origin}?`,
+    );
+  }
+
+  const raw = await response.text();
+  let payload = {};
+  try {
+    payload = raw ? JSON.parse(raw) : {};
+  } catch {
+    payload = {};
+  }
+
+  if (!response.ok) {
+    const detail = payload.error || raw || "Request failed.";
+    throw new Error(`HTTP ${response.status}: ${detail}`);
+  }
+  return payload;
+}
+
+async function sendMessage() {
+  if (!state.user) {
+    setStatus("Sign in first");
+    return;
+  }
+  if (!canUseCoach()) {
+    setStatus("Change password to unlock coaching");
+    return;
+  }
+
+  const content = inputEl.value.trim();
+  if (!content) return;
+
+  stopSpeaking();
+  state.sessionPace = getSessionPace();
+  renderMessage("user", content, true);
+  inputEl.value = "";
+  clearDraft();
+  sendBtn.disabled = true;
+  coachStartBtn.disabled = true;
+  setStatus("Thinking...");
+  setCoachVisualState("idle", "Thinking...");
+
+  try {
+    const meetingNotes = meetingNotesInputEl ? meetingNotesInputEl.value.trim() : "";
+    const selfReport = selfReportInputEl ? selfReportInputEl.value.trim() : "";
+    const payload = await apiRequest("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        messages: state.messages,
+        meetingNotes,
+        selfReport,
+        sessionPace: state.sessionPace,
+      }),
+    });
+
+    renderMessage("assistant", payload.reply, true);
+    if (autoSpeakEl.checked) speak(payload.reply);
+    setStatus("Ready");
+  } catch (err) {
+    renderMessage("assistant", `Error: ${err.message}`, false);
+    if (err.message.includes("Please log in first.")) {
+      showSignedOutUI();
+    }
+    if (err.message.includes("Password change required")) {
+      if (state.user) {
+        state.user.mustChangePassword = true;
+      }
+      syncAccessState();
+    }
+    setStatus("Error");
+  } finally {
+    sendBtn.disabled = false;
+    coachStartBtn.disabled = false;
+    refreshCoachVisualState();
+    inputEl.focus();
+  }
+}
+
+async function initiateCoachConversation() {
+  if (!state.user) {
+    setStatus("Sign in first");
+    return;
+  }
+  if (!canUseCoach()) {
+    setStatus("Change password to unlock coaching");
+    return;
+  }
+
+  sendBtn.disabled = true;
+  coachStartBtn.disabled = true;
+  setStatus("Coach is opening...");
+  setCoachVisualState("idle", "Opening...");
+
+  try {
+    stopSpeaking();
+    state.sessionPace = getSessionPace();
+    const meetingNotes = meetingNotesInputEl ? meetingNotesInputEl.value.trim() : "";
+    const selfReport = selfReportInputEl ? selfReportInputEl.value.trim() : "";
+    const payload = await apiRequest("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        messages: state.messages,
+        meetingNotes,
+        selfReport,
+        initiate: true,
+        sessionPace: state.sessionPace,
+      }),
+    });
+
+    renderMessage("assistant", payload.reply, true);
+    if (autoSpeakEl.checked) speak(payload.reply);
+    setStatus("Ready");
+  } catch (err) {
+    renderMessage("assistant", `Error: ${err.message}`, false);
+    setStatus("Error");
+  } finally {
+    sendBtn.disabled = false;
+    coachStartBtn.disabled = false;
+    refreshCoachVisualState();
+    inputEl.focus();
+  }
+}
+
+function initSpeechRecognition() {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    micBtn.disabled = true;
+    setStatus("Mic not supported in this browser");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    state.listening = true;
+    micBtn.textContent = "Stop Mic";
+    setStatus("Listening...");
+    refreshCoachVisualState();
+  };
+
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    inputEl.value = inputEl.value ? `${inputEl.value} ${text}` : text;
+    inputEl.focus();
+  };
+
+  recognition.onend = () => {
+    state.listening = false;
+    micBtn.textContent = "Start Mic";
+    syncAccessState();
+    refreshCoachVisualState();
+  };
+
+  recognition.onerror = () => {
+    state.listening = false;
+    micBtn.textContent = "Start Mic";
+    setStatus("Mic error");
+    refreshCoachVisualState();
+  };
+
+  state.recognition = recognition;
+}
+
+function toggleMic() {
+  if (!canUseCoach() || !state.recognition) return;
+  if (state.listening) {
+    state.recognition.stop();
+    return;
+  }
+  state.recognition.start();
+}
+
+async function checkSession() {
+  try {
+    const payload = await apiRequest("/api/me", { method: "GET" });
+    if (payload.settings) {
+      applyAppSettings(payload.settings);
+    }
+    if (payload.authenticated && payload.user) {
+      showAuthenticatedUI(payload.user, payload.settings);
+      return;
+    }
+    showSignedOutUI({ showSplash: true });
+  } catch {
+    showSignedOutUI({ showSplash: true });
+  }
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  setAuthStatus("Signing in...");
+
+  const identifier = document.getElementById("loginIdentifier").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  try {
+    const payload = await apiRequest("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ identifier, password }),
+    });
+    if (payload.settings) {
+      applyAppSettings(payload.settings);
+    }
+    showAuthenticatedUI(payload.user, payload.settings);
+  } catch (err) {
+    setAuthStatus(err.message);
+  }
+}
+
+async function handleRegister(event) {
+  event.preventDefault();
+  setAuthStatus("Creating account...");
+
+  const username = document.getElementById("registerUsername").value.trim();
+  const email = document.getElementById("registerEmail").value.trim();
+  const password = document.getElementById("registerPassword").value;
+  const displayName = document.getElementById("registerName").value.trim();
+  const role = document.getElementById("registerRole").value.trim();
+  const focusAreas = document.getElementById("registerFocus").value.trim();
+
+  try {
+    const payload = await apiRequest("/api/register", {
+      method: "POST",
+      body: JSON.stringify({
+        username,
+        email,
+        password,
+        displayName,
+        role,
+        focusAreas,
+        coachingTone: normalizeCoachingTone(coachingToneEl.value),
+        coachStyleWeights: getCoachStyleWeightsFromInputs(),
+      }),
+    });
+    if (payload.settings) {
+      applyAppSettings(payload.settings);
+    }
+    showAuthenticatedUI(payload.user, payload.settings);
+  } catch (err) {
+    setAuthStatus(err.message);
+  }
+}
+
+async function handleLogout() {
+  try {
+    await apiRequest("/api/logout", { method: "POST", body: "{}" });
+  } finally {
+    showSignedOutUI({ showSplash: true });
+  }
+}
+
+async function handleProfileSave() {
+  if (!state.user) return;
+  setProfileStatus("Saving...");
+
+  try {
+    const payload = await apiRequest("/api/profile", {
+      method: "PUT",
+      body: JSON.stringify({
+        displayName: profileNameEl.value.trim(),
+        role: profileRoleEl.value.trim(),
+        focusAreas: profileFocusEl.value.trim(),
+        coachingTone: normalizeCoachingTone(coachingToneEl.value),
+        coachStyleWeights: getCoachStyleWeightsFromInputs(),
+      }),
+    });
+    applyUserToUI(payload.user);
+    setProfileStatus("Profile updated.");
+  } catch (err) {
+    setProfileStatus(err.message);
+  }
+}
+
+async function handlePasswordChange() {
+  if (!state.user) return;
+  const currentPassword = currentPasswordEl.value;
+  const newPassword = newPasswordEl.value;
+  const confirmPassword = confirmPasswordEl.value;
+
+  if (!newPassword || newPassword.length < 10) {
+    setPasswordStatus("New password must be at least 10 characters.");
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    setPasswordStatus("New password and confirm password do not match.");
+    return;
+  }
+
+  setPasswordStatus("Updating password...");
+  try {
+    const payload = await apiRequest("/api/password", {
+      method: "PUT",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    applyUserToUI(payload.user);
+    currentPasswordEl.value = "";
+    newPasswordEl.value = "";
+    confirmPasswordEl.value = "";
+    setPasswordStatus("Password updated.");
+    if (!payload.user.mustChangePassword) {
+      setView("chat");
+    }
+  } catch (err) {
+    setPasswordStatus(err.message);
+  }
+}
+
+sendBtn.addEventListener("click", sendMessage);
+coachStartBtn.addEventListener("click", initiateCoachConversation);
+micBtn.addEventListener("click", toggleMic);
+stopSpeakBtn.addEventListener("click", stopSpeaking);
+resetBtn.addEventListener("click", resetChat);
+getStartedBtn.addEventListener("click", () => {
+  showAuthPage();
+  showAuthMode("login");
+});
+showLoginBtn.addEventListener("click", () => showAuthMode("login"));
+showRegisterBtn.addEventListener("click", () => showAuthMode("register"));
+loginForm.addEventListener("submit", handleLogin);
+registerForm.addEventListener("submit", handleRegister);
+logoutBtn.addEventListener("click", handleLogout);
+saveProfileBtn.addEventListener("click", handleProfileSave);
+changePasswordBtn.addEventListener("click", handlePasswordChange);
+if (addNudgeBtn) {
+  addNudgeBtn.addEventListener("click", createNudge);
+}
+if (refreshNudgesBtn) {
+  refreshNudgesBtn.addEventListener("click", () => loadNudges());
+}
+if (submitFeedbackBtn) {
+  submitFeedbackBtn.addEventListener("click", submitSessionFeedback);
+}
+if (saveAdminSettingsBtn) {
+  saveAdminSettingsBtn.addEventListener("click", saveAdminSettings);
+}
+accountMenuBtn.addEventListener("click", () => {
+  if (!state.user) return;
+  setView("settings");
+  loadNudges({ quiet: true });
+});
+adminMenuBtn.addEventListener("click", () => {
+  if (!state.user || !state.user.isAdmin) return;
+  showAdminDashboard();
+});
+dashboardMenuBtn.addEventListener("click", () => {
+  if (!state.user) return;
+  showDashboard();
+});
+backToChatBtn.addEventListener("click", () => {
+  if (!state.user) return;
+  setView("chat");
+});
+backToChatFromDashboardBtn.addEventListener("click", () => {
+  if (!state.user) return;
+  setView("chat");
+});
+backToChatFromAdminBtn.addEventListener("click", () => {
+  if (!state.user) return;
+  setView("chat");
+});
+if (voiceQualityEl) {
+  voiceQualityEl.addEventListener("change", () => {
+    state.voiceQuality = getVoiceQuality();
+    persistSpeechSettings();
+  });
+}
+if (speechVoiceEl) {
+  speechVoiceEl.addEventListener("change", () => {
+    state.voiceName = getSpeechVoice();
+    persistSpeechSettings();
+  });
+}
+if (sessionPaceEl) {
+  sessionPaceEl.addEventListener("change", () => {
+    state.sessionPace = getSessionPace();
+    persistSpeechSettings();
+  });
+}
+for (const btn of quickPromptBtns) {
+  btn.addEventListener("click", () => {
+    runQuickPrompt(btn.dataset.quickPrompt || "");
+  });
+}
+
+inputEl.addEventListener("keydown", (event) => {
+  const isEnter = event.key === "Enter";
+  const isShortcut = (event.metaKey || event.ctrlKey) && isEnter;
+  const isPlainEnter = isEnter && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey;
+  if ((isShortcut || isPlainEnter) && !event.isComposing) {
+    event.preventDefault();
+    sendMessage();
+  }
+});
+inputEl.addEventListener("input", () => {
+  persistDraft();
+});
+
+if ("speechSynthesis" in window) {
+  pickPreferredVoice();
+  if ("onvoiceschanged" in window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      preferredVoice = null;
+      pickPreferredVoice();
+    };
+  }
+}
+
+loadSpeechSettings();
+loadDraft();
+clearNudgeInputs();
+clearFeedbackInputs();
+applyAppSettings(state.appSettings);
+initSpeechRecognition();
+showAuthMode("login");
+checkSession();
