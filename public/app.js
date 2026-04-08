@@ -98,6 +98,16 @@ const adminDisableRegistrationEl = document.getElementById(
 );
 const saveAdminSettingsBtn = document.getElementById("saveAdminSettingsBtn");
 const adminSettingsStatusEl = document.getElementById("adminSettingsStatus");
+const adminCreateUsernameEl = document.getElementById("adminCreateUsername");
+const adminCreateDisplayNameEl = document.getElementById("adminCreateDisplayName");
+const adminCreateEmailEl = document.getElementById("adminCreateEmail");
+const adminCreateRoleEl = document.getElementById("adminCreateRole");
+const adminCreatePasswordEl = document.getElementById("adminCreatePassword");
+const adminCreateMustChangePasswordEl = document.getElementById(
+  "adminCreateMustChangePassword",
+);
+const adminCreateUserBtn = document.getElementById("adminCreateUserBtn");
+const adminCreateUserStatusEl = document.getElementById("adminCreateUserStatus");
 
 const meetingNotesInputEl = document.getElementById("meetingNotesInput");
 const selfReportInputEl = document.getElementById("selfReportInput");
@@ -167,7 +177,7 @@ const state = {
   sessionPace: "standard",
   nudges: [],
   appSettings: {
-    registrationDisabled: true,
+    registrationDisabled: false,
   },
 };
 let preferredVoice = null;
@@ -412,13 +422,19 @@ function setAdminSettingsStatus(text) {
   }
 }
 
+function setAdminCreateUserStatus(text) {
+  if (adminCreateUserStatusEl) {
+    adminCreateUserStatusEl.textContent = text;
+  }
+}
+
 function normalizeAppSettings(settings) {
   const source = settings && typeof settings === "object" ? settings : {};
   return {
     registrationDisabled:
       typeof source.registrationDisabled === "boolean"
         ? source.registrationDisabled
-        : true,
+        : false,
   };
 }
 
@@ -1262,6 +1278,69 @@ async function saveAdminSettings() {
   }
 }
 
+function clearAdminCreateUserForm() {
+  if (adminCreateUsernameEl) adminCreateUsernameEl.value = "";
+  if (adminCreateDisplayNameEl) adminCreateDisplayNameEl.value = "";
+  if (adminCreateEmailEl) adminCreateEmailEl.value = "";
+  if (adminCreateRoleEl) adminCreateRoleEl.value = "";
+  if (adminCreatePasswordEl) adminCreatePasswordEl.value = "";
+  if (adminCreateMustChangePasswordEl) adminCreateMustChangePasswordEl.checked = true;
+}
+
+async function createAdminUser() {
+  if (!state.user || !state.user.isAdmin) return;
+
+  const username = String(adminCreateUsernameEl?.value || "").trim();
+  const displayName = String(adminCreateDisplayNameEl?.value || "").trim();
+  const email = String(adminCreateEmailEl?.value || "").trim();
+  const role = String(adminCreateRoleEl?.value || "").trim();
+  const password = String(adminCreatePasswordEl?.value || "");
+  const mustChangePassword = Boolean(adminCreateMustChangePasswordEl?.checked);
+
+  if (!username) {
+    setAdminCreateUserStatus("Username is required.");
+    return;
+  }
+  if (!password || password.length < 8) {
+    setAdminCreateUserStatus("Temporary password must be at least 8 characters.");
+    return;
+  }
+
+  setAdminCreateUserStatus("Creating user...");
+  if (adminCreateUserBtn) adminCreateUserBtn.disabled = true;
+
+  try {
+    const payload = await apiRequest("/api/admin/users", {
+      method: "POST",
+      body: JSON.stringify({
+        username,
+        displayName,
+        email,
+        role,
+        password,
+        mustChangePassword,
+      }),
+    });
+    if (payload.settings) {
+      applyAppSettings(payload.settings);
+    }
+    if (payload.user) {
+      applyUserToUI(payload.user);
+    }
+    if (payload.dashboard) {
+      renderAdminDashboard(payload.dashboard);
+    }
+    clearAdminCreateUserForm();
+    const createdName =
+      payload?.createdUser?.username || payload?.createdUser?.displayName || username;
+    setAdminCreateUserStatus(`Created @${createdName}.`);
+  } catch (err) {
+    setAdminCreateUserStatus(err.message);
+  } finally {
+    if (adminCreateUserBtn) adminCreateUserBtn.disabled = false;
+  }
+}
+
 async function showAdminDashboard() {
   if (!state.user || !state.user.isAdmin) return;
   try {
@@ -1906,6 +1985,7 @@ function showAuthenticatedUI(user, settings = null) {
   clearFeedbackInputs();
   setFeedbackStatus("");
   clearNudgeInputs();
+  setAdminCreateUserStatus("");
   loadNudges({ quiet: true });
   if (user.mustChangePassword) {
     setView("settings");
@@ -1946,6 +2026,7 @@ function showSignedOutUI({ showSplash = true } = {}) {
   setNudgeStatus("");
   setFeedbackStatus("");
   setAdminSettingsStatus("");
+  setAdminCreateUserStatus("");
   clearFeedbackInputs();
   if (nudgeListEl) nudgeListEl.innerHTML = "";
   coachingToneEl.value = DEFAULT_COACHING_TONE;
@@ -2316,6 +2397,9 @@ if (submitFeedbackBtn) {
 if (saveAdminSettingsBtn) {
   saveAdminSettingsBtn.addEventListener("click", saveAdminSettings);
 }
+if (adminCreateUserBtn) {
+  adminCreateUserBtn.addEventListener("click", createAdminUser);
+}
 accountMenuBtn.addEventListener("click", () => {
   if (!state.user) return;
   setView("settings");
@@ -2392,6 +2476,7 @@ loadSpeechSettings();
 loadDraft();
 clearNudgeInputs();
 clearFeedbackInputs();
+clearAdminCreateUserForm();
 applyAppSettings(state.appSettings);
 initSpeechRecognition();
 showAuthMode("login");

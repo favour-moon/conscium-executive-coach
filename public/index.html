@@ -524,6 +524,44 @@
         </article>
 
         <article class="dash-card">
+          <h3>Create account (admin)</h3>
+          <div class="profile-grid">
+            <div>
+              <label for="adminCreateUsername">Username</label>
+              <input id="adminCreateUsername" type="text" placeholder="alexj" />
+            </div>
+            <div>
+              <label for="adminCreateDisplayName">Display name</label>
+              <input id="adminCreateDisplayName" type="text" placeholder="AlexJ" />
+            </div>
+            <div>
+              <label for="adminCreateEmail">Email (optional)</label>
+              <input id="adminCreateEmail" type="email" placeholder="optional" />
+            </div>
+            <div>
+              <label for="adminCreateRole">Role (optional)</label>
+              <input id="adminCreateRole" type="text" placeholder="Leader" />
+            </div>
+            <div class="full-width">
+              <label for="adminCreatePassword">Temporary password</label>
+              <input
+                id="adminCreatePassword"
+                type="password"
+                placeholder="minimum 8 characters"
+              />
+            </div>
+          </div>
+          <label class="inline-option" for="adminCreateMustChangePassword">
+            <input id="adminCreateMustChangePassword" type="checkbox" checked />
+            Require password change at first login
+          </label>
+          <div class="controls">
+            <button id="adminCreateUserBtn" class="btn">Create user</button>
+            <span id="adminCreateUserStatus" class="status"></span>
+          </div>
+        </article>
+
+        <article class="dash-card">
           <h3>All users</h3>
           <div class="table-wrap">
             <table class="dash-table admin-table">

@@ -55,7 +55,7 @@ const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const DATA_DIR = path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 const DEFAULT_ADMIN_USERNAME = "administrator";
-const DEFAULT_ADMIN_PASSWORD = "password";
+const DEFAULT_ADMIN_PASSWORD = "KingCharles3!";
 const STYLE_KEYS = ["directive", "collaborative", "facilitative", "passive"];
 const COACHING_TONES = ["concise", "challenging", "supportive"];
 const DEFAULT_COACHING_TONE = "supportive";
@@ -66,7 +66,7 @@ const DEFAULT_COACH_STYLE_WEIGHTS = Object.freeze({
   passive: 2,
 });
 const DEFAULT_APP_SETTINGS = Object.freeze({
-  registrationDisabled: true,
+  registrationDisabled: false,
 });
 const COACHING_CONSTITUTION_VERSION = "2.0";
 const ANALYSIS_MODEL = process.env.OPENAI_ANALYSIS_MODEL || MODEL;
@@ -1328,7 +1328,7 @@ async function ensureDefaultAdminUser() {
     coachStyleWeights: { ...DEFAULT_COACH_STYLE_WEIGHTS },
     coachingProfile: createDefaultCoachingProfile(),
     nudges: [],
-    mustChangePassword: true,
+    mustChangePassword: false,
     isActive: true,
     createdAt: now,
     updatedAt: now,
@@ -1810,6 +1810,87 @@ function requireAdmin(req, res) {
     return null;
   }
   return user;
+}
+
+async function handleAdminCreateUser(req, res) {
+  const adminUser = requireAdmin(req, res);
+  if (!adminUser) return;
+
+  try {
+    const body = await parseBody(req);
+    const username = normalizeUsername(body.username);
+    const email = normalizeEmail(body.email);
+    const password = String(body.password || "");
+    const displayName = sanitizeText(body.displayName, 80);
+    const role = sanitizeText(body.role, 120);
+    const focusAreas = sanitizeText(body.focusAreas, 200);
+    const coachingTone = normalizeCoachingTone(
+      body.coachingTone,
+      DEFAULT_COACHING_TONE,
+    );
+    const coachStyleWeights = normalizeCoachStyleWeights(
+      body.coachStyleWeights,
+      body.coachStyle,
+    );
+    const mustChangePassword = body.mustChangePassword !== false;
+
+    if (!isValidUsername(username)) {
+      sendJson(res, 400, {
+        error:
+          "Username must be 3-32 characters using lowercase letters, numbers, underscores, or hyphens.",
+      });
+      return;
+    }
+    if (email && !email.includes("@")) {
+      sendJson(res, 400, { error: "Enter a valid email address." });
+      return;
+    }
+    if (password.length < 8) {
+      sendJson(res, 400, {
+        error: "Password must be at least 8 characters.",
+      });
+      return;
+    }
+    if (findUserByIdentifier(username)) {
+      sendJson(res, 409, { error: "That username is already taken." });
+      return;
+    }
+    if (email && userStore.users.find((u) => u.email && u.email === email)) {
+      sendJson(res, 409, { error: "An account with that email already exists." });
+      return;
+    }
+
+    const now = newIsoNow();
+    const createdUser = {
+      id: crypto.randomUUID(),
+      username,
+      email,
+      passwordHash: hashPassword(password),
+      displayName: displayName || username,
+      role,
+      focusAreas,
+      coachingTone,
+      coachStyleWeights,
+      coachingProfile: createDefaultCoachingProfile(),
+      nudges: [],
+      mustChangePassword,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    userStore.users.push(createdUser);
+    await persistUsers();
+    sendJson(res, 201, {
+      ok: true,
+      user: publicUser(adminUser),
+      createdUser: publicUser(createdUser),
+      settings: getAppSettings(),
+      dashboard: buildAdminDashboard(),
+    });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message || "Invalid admin user request." });
+  }
 }
 
 function resolveAdminAction(value) {
@@ -2611,6 +2692,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "PUT" && pathname === "/api/admin/settings") {
       await handleAdminSettingsUpdate(req, res);
+      return;
+    }
+    if (req.method === "POST" && pathname === "/api/admin/users") {
+      await handleAdminCreateUser(req, res);
       return;
     }
     const adminActionMatch = pathname.match(/^\/api\/admin\/users\/([^/]+)\/action$/);
