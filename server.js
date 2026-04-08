@@ -221,7 +221,7 @@ Success definition:
 `;
 
 const PROFILE_ANALYZER_PROMPT = `
-You are the profile and intervention analyst for Conscium.
+You are the profile and intervention analyst for Consilium.
 
 Task:
 - After each coaching interaction, update the coachee profile from evidence.

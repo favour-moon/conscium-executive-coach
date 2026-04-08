@@ -1,4 +1,4 @@
-# Conscium Executive Coach
+# Consilium Executive Coach
 
 Voice-enabled executive coaching app with personal accounts, profile feedback loops, nudges, and an admin console.
 

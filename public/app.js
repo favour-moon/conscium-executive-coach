@@ -197,8 +197,8 @@ let speakToken = 0;
 
 const STARTER_PROMPT = "";
 const OPENING_MESSAGE =
-  "Hi, I’m Conscium. What leadership conversation or decision would you like to work through first?";
-const DRAFT_STORAGE_KEY = "conscium.messageDraft";
+  "Hi, I’m Consilium. What leadership conversation or decision would you like to work through first?";
+const DRAFT_STORAGE_KEY = "consilium.messageDraft";
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -562,7 +562,7 @@ function renderMessage(role, content, track = true) {
 
   const label = document.createElement("span");
   label.className = "msg-label";
-  label.textContent = role === "assistant" ? "Conscium" : "You";
+  label.textContent = role === "assistant" ? "Consilium" : "You";
 
   const text = document.createElement("div");
   text.textContent = content;
@@ -1604,9 +1604,9 @@ function loadDraft() {
 
 function persistSpeechSettings() {
   try {
-    localStorage.setItem("conscium.voiceQuality", getVoiceQuality());
-    localStorage.setItem("conscium.voiceName", getSpeechVoice());
-    localStorage.setItem("conscium.sessionPace", getSessionPace());
+    localStorage.setItem("consilium.voiceQuality", getVoiceQuality());
+    localStorage.setItem("consilium.voiceName", getSpeechVoice());
+    localStorage.setItem("consilium.sessionPace", getSessionPace());
   } catch {
     // localStorage may be unavailable in privacy mode.
   }
@@ -1614,10 +1614,10 @@ function persistSpeechSettings() {
 
 function loadSpeechSettings() {
   try {
-    const quality = localStorage.getItem("conscium.voiceQuality");
-    const mode = localStorage.getItem("conscium.voiceMode");
-    const voiceName = localStorage.getItem("conscium.voiceName");
-    const pace = localStorage.getItem("conscium.sessionPace");
+    const quality = localStorage.getItem("consilium.voiceQuality");
+    const mode = localStorage.getItem("consilium.voiceMode");
+    const voiceName = localStorage.getItem("consilium.voiceName");
+    const pace = localStorage.getItem("consilium.sessionPace");
     if (voiceQualityEl) {
       let nextQuality = "";
       if (quality) {
