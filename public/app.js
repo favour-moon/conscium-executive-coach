@@ -45,6 +45,14 @@ const accountEmailEl = document.getElementById("accountEmail");
 const profileNameEl = document.getElementById("profileName");
 const profileRoleEl = document.getElementById("profileRole");
 const profileFocusEl = document.getElementById("profileFocus");
+const supervisorModeToggleEl = document.getElementById("supervisorModeToggle");
+const supervisorModeHintEl = document.getElementById("supervisorModeHint");
+const stakeholderPersonaSelectEl = document.getElementById(
+  "stakeholderPersonaSelect",
+);
+const domainPlaybookSelectEl = document.getElementById("domainPlaybookSelect");
+const personaLibraryListEl = document.getElementById("personaLibraryList");
+const playbookLibraryListEl = document.getElementById("playbookLibraryList");
 const coachingToneEl = document.getElementById("coachingTone");
 const voiceQualityEl = document.getElementById("voiceQuality");
 const sessionPaceEl = document.getElementById("sessionPace");
@@ -91,11 +99,16 @@ const adminTotalSelfReportsEl = document.getElementById("adminTotalSelfReports")
 const adminTotalFeedbackEl = document.getElementById("adminTotalFeedback");
 const adminAvgFeedbackEl = document.getElementById("adminAvgFeedback");
 const adminDueNudgesEl = document.getElementById("adminDueNudges");
+const adminTotalPracticePlansEl = document.getElementById(
+  "adminTotalPracticePlans",
+);
+const adminSupervisorUsersEl = document.getElementById("adminSupervisorUsers");
 const adminTopUseCasesEl = document.getElementById("adminTopUseCases");
 const adminUsersTableBodyEl = document.getElementById("adminUsersTableBody");
 const adminDisableRegistrationEl = document.getElementById(
   "adminDisableRegistration",
 );
+const adminSupervisorModeEl = document.getElementById("adminSupervisorMode");
 const saveAdminSettingsBtn = document.getElementById("saveAdminSettingsBtn");
 const adminSettingsStatusEl = document.getElementById("adminSettingsStatus");
 const adminCreateUsernameEl = document.getElementById("adminCreateUsername");
@@ -118,6 +131,27 @@ const addNudgeBtn = document.getElementById("addNudgeBtn");
 const refreshNudgesBtn = document.getElementById("refreshNudgesBtn");
 const nudgeStatusEl = document.getElementById("nudgeStatus");
 const nudgeListEl = document.getElementById("nudgeList");
+const practicePlanTitleInputEl = document.getElementById("practicePlanTitleInput");
+const practicePlanObjectiveInputEl = document.getElementById(
+  "practicePlanObjectiveInput",
+);
+const practicePlanActionsInputEl = document.getElementById(
+  "practicePlanActionsInput",
+);
+const practicePlanCadenceSelectEl = document.getElementById(
+  "practicePlanCadenceSelect",
+);
+const practicePlanDueAtInputEl = document.getElementById("practicePlanDueAtInput");
+const practicePlanPersonaSelectEl = document.getElementById(
+  "practicePlanPersonaSelect",
+);
+const practicePlanDomainSelectEl = document.getElementById(
+  "practicePlanDomainSelect",
+);
+const createPracticePlanBtn = document.getElementById("createPracticePlanBtn");
+const refreshPracticePlansBtn = document.getElementById("refreshPracticePlansBtn");
+const practicePlanStatusEl = document.getElementById("practicePlanStatus");
+const practicePlanListEl = document.getElementById("practicePlanList");
 const feedbackHelpfulnessEl = document.getElementById("feedbackHelpfulness");
 const feedbackClarityEl = document.getElementById("feedbackClarity");
 const feedbackConfidenceEl = document.getElementById("feedbackConfidence");
@@ -176,8 +210,12 @@ const state = {
   voiceName: "shimmer",
   sessionPace: "standard",
   nudges: [],
+  personas: [],
+  playbooks: [],
+  practicePlans: [],
   appSettings: {
     registrationDisabled: false,
+    supervisorModeEnabled: true,
   },
 };
 let preferredVoice = null;
@@ -410,6 +448,12 @@ function setNudgeStatus(text) {
   }
 }
 
+function setPracticePlanStatus(text) {
+  if (practicePlanStatusEl) {
+    practicePlanStatusEl.textContent = text;
+  }
+}
+
 function setFeedbackStatus(text) {
   if (feedbackStatusEl) {
     feedbackStatusEl.textContent = text;
@@ -435,12 +479,17 @@ function normalizeAppSettings(settings) {
       typeof source.registrationDisabled === "boolean"
         ? source.registrationDisabled
         : false,
+    supervisorModeEnabled:
+      typeof source.supervisorModeEnabled === "boolean"
+        ? source.supervisorModeEnabled
+        : true,
   };
 }
 
 function applyAppSettings(settings) {
   state.appSettings = normalizeAppSettings(settings);
   const disabled = Boolean(state.appSettings.registrationDisabled);
+  const supervisorEnabled = Boolean(state.appSettings.supervisorModeEnabled);
 
   if (showRegisterBtn) {
     showRegisterBtn.classList.toggle("hidden", disabled);
@@ -453,6 +502,20 @@ function applyAppSettings(settings) {
   }
   if (adminDisableRegistrationEl) {
     adminDisableRegistrationEl.checked = disabled;
+  }
+  if (adminSupervisorModeEl) {
+    adminSupervisorModeEl.checked = supervisorEnabled;
+  }
+  if (supervisorModeToggleEl) {
+    supervisorModeToggleEl.disabled = !supervisorEnabled;
+    if (!supervisorEnabled) {
+      supervisorModeToggleEl.checked = false;
+    }
+  }
+  if (supervisorModeHintEl) {
+    supervisorModeHintEl.textContent = supervisorEnabled
+      ? "Supervisor mode adds more direct challenge and commitment checks."
+      : "Supervisor mode is currently disabled by your administrator.";
   }
 }
 
@@ -618,6 +681,74 @@ function setListItems(element, items, emptyText) {
     const li = document.createElement("li");
     li.textContent = String(item);
     element.appendChild(li);
+  }
+}
+
+function setSelectOptions(selectEl, items, selectedValue = "", emptyLabel = "None selected") {
+  if (!selectEl) return;
+  const previousValue = String(selectedValue || "");
+  const list = Array.isArray(items) ? items : [];
+  const options = [
+    `<option value="">${emptyLabel}</option>`,
+    ...list.map((item) => {
+      const value = String(item?.id || "");
+      const label = String(item?.name || value || "Unknown");
+      return `<option value="${value}">${label}</option>`;
+    }),
+  ];
+  selectEl.innerHTML = options.join("");
+  if (previousValue && list.some((item) => String(item?.id || "") === previousValue)) {
+    selectEl.value = previousValue;
+  } else {
+    selectEl.value = "";
+  }
+}
+
+function renderPersonaLibrary(personas) {
+  if (!personaLibraryListEl) return;
+  const list = Array.isArray(personas) ? personas : [];
+  if (!list.length) {
+    setListItems(personaLibraryListEl, [], "No stakeholder personas loaded yet.");
+    return;
+  }
+  personaLibraryListEl.innerHTML = "";
+  for (const persona of list) {
+    const li = document.createElement("li");
+    const heading = document.createElement("strong");
+    heading.textContent = persona.name || "Unnamed persona";
+    li.appendChild(heading);
+    const detail = document.createElement("p");
+    detail.className = "muted";
+    const priorities = Array.isArray(persona.priorities)
+      ? persona.priorities.slice(0, 3).join(", ")
+      : "No priorities listed";
+    detail.textContent = `${persona.archetype || "Stakeholder"} | ${persona.pressureStyle || "Pressure style not set"} | Priorities: ${priorities}`;
+    li.appendChild(detail);
+    personaLibraryListEl.appendChild(li);
+  }
+}
+
+function renderPlaybookLibrary(playbooks) {
+  if (!playbookLibraryListEl) return;
+  const list = Array.isArray(playbooks) ? playbooks : [];
+  if (!list.length) {
+    setListItems(playbookLibraryListEl, [], "No playbooks loaded yet.");
+    return;
+  }
+  playbookLibraryListEl.innerHTML = "";
+  for (const playbook of list) {
+    const li = document.createElement("li");
+    const heading = document.createElement("strong");
+    heading.textContent = playbook.name || "Unnamed playbook";
+    li.appendChild(heading);
+    const detail = document.createElement("p");
+    detail.className = "muted";
+    const coreMoves = Array.isArray(playbook.coreMoves)
+      ? playbook.coreMoves.slice(0, 2).join(" | ")
+      : "No core moves listed";
+    detail.textContent = `${playbook.context || "Domain guidance"} | ${coreMoves}`;
+    li.appendChild(detail);
+    playbookLibraryListEl.appendChild(li);
   }
 }
 
@@ -912,6 +1043,138 @@ function renderNudges(nudges) {
   }
 }
 
+function normalizePracticePlanStatus(value) {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (["active", "paused", "completed"].includes(raw)) return raw;
+  return "active";
+}
+
+function formatPracticePlanStatus(status) {
+  if (status === "completed") return "completed";
+  if (status === "paused") return "dismissed";
+  return "scheduled";
+}
+
+function clearPracticePlanInputs() {
+  if (practicePlanTitleInputEl) practicePlanTitleInputEl.value = "";
+  if (practicePlanObjectiveInputEl) practicePlanObjectiveInputEl.value = "";
+  if (practicePlanActionsInputEl) practicePlanActionsInputEl.value = "";
+  if (practicePlanCadenceSelectEl) practicePlanCadenceSelectEl.value = "weekly";
+  if (practicePlanDueAtInputEl) practicePlanDueAtInputEl.value = "";
+  if (practicePlanPersonaSelectEl) practicePlanPersonaSelectEl.value = "";
+  if (practicePlanDomainSelectEl) practicePlanDomainSelectEl.value = "";
+}
+
+function renderPracticePlans(plans) {
+  if (!practicePlanListEl) return;
+  const list = Array.isArray(plans) ? plans : [];
+  state.practicePlans = list;
+  practicePlanListEl.innerHTML = "";
+  if (!list.length) {
+    const li = document.createElement("li");
+    li.className = "muted";
+    li.textContent = "No practice plans yet.";
+    practicePlanListEl.appendChild(li);
+    return;
+  }
+
+  for (const plan of list) {
+    const li = document.createElement("li");
+    const head = document.createElement("div");
+    head.className = "practice-item-head";
+
+    const title = document.createElement("strong");
+    title.textContent = plan.title || "Practice plan";
+    head.appendChild(title);
+
+    const status = normalizePracticePlanStatus(plan.status);
+    const statusEl = document.createElement("span");
+    statusEl.className = `nudge-status ${formatPracticePlanStatus(status)}`;
+    statusEl.textContent = status;
+    head.appendChild(statusEl);
+    li.appendChild(head);
+
+    const meta = document.createElement("p");
+    meta.className = "muted practice-meta";
+    const cadence = plan.cadence ? `Cadence: ${plan.cadence}` : "Cadence: not set";
+    const dueAt = plan.nextDueAt ? `Next due: ${formatDate(plan.nextDueAt)}` : "No due date";
+    const completedCount = Number(plan.completedCount || 0);
+    meta.textContent = `${cadence} | ${dueAt} | Sessions completed: ${completedCount}`;
+    li.appendChild(meta);
+
+    const context = [];
+    if (plan.stakeholderPersona?.name) {
+      context.push(`Persona: ${plan.stakeholderPersona.name}`);
+    }
+    if (plan.playbook?.name) {
+      context.push(`Playbook: ${plan.playbook.name}`);
+    }
+    if (context.length) {
+      const contextEl = document.createElement("p");
+      contextEl.className = "muted";
+      contextEl.textContent = context.join(" | ");
+      li.appendChild(contextEl);
+    }
+
+    if (plan.objective) {
+      const objective = document.createElement("p");
+      objective.textContent = plan.objective;
+      li.appendChild(objective);
+    }
+
+    if (Array.isArray(plan.actions) && plan.actions.length) {
+      const actionList = document.createElement("ul");
+      actionList.className = "dash-bullets";
+      for (const action of plan.actions) {
+        const item = document.createElement("li");
+        item.textContent = action;
+        actionList.appendChild(item);
+      }
+      li.appendChild(actionList);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "nudge-actions";
+
+    const practicedBtn = document.createElement("button");
+    practicedBtn.className = "btn small";
+    practicedBtn.type = "button";
+    practicedBtn.textContent = "Mark practiced";
+    practicedBtn.disabled = status === "completed";
+    practicedBtn.addEventListener("click", () =>
+      updatePracticePlan(plan.id, { action: "mark_practiced" }),
+    );
+    actions.appendChild(practicedBtn);
+
+    const toggleBtn = document.createElement("button");
+    toggleBtn.className = "btn small";
+    toggleBtn.type = "button";
+    toggleBtn.textContent = status === "paused" ? "Activate" : "Pause";
+    toggleBtn.disabled = status === "completed";
+    toggleBtn.addEventListener("click", () =>
+      updatePracticePlan(plan.id, {
+        action: status === "paused" ? "activate" : "pause",
+      }),
+    );
+    actions.appendChild(toggleBtn);
+
+    const completeBtn = document.createElement("button");
+    completeBtn.className = "btn small";
+    completeBtn.type = "button";
+    completeBtn.textContent = "Complete";
+    completeBtn.disabled = status === "completed";
+    completeBtn.addEventListener("click", () =>
+      updatePracticePlan(plan.id, { action: "complete" }),
+    );
+    actions.appendChild(completeBtn);
+
+    li.appendChild(actions);
+    practicePlanListEl.appendChild(li);
+  }
+}
+
 function renderDashboard(dashboard) {
   const profile = dashboard?.profile || {};
   const metrics = profile.metrics || {};
@@ -1030,8 +1293,17 @@ function renderAdminDashboard(dashboard) {
   if (adminDueNudgesEl) {
     adminDueNudgesEl.textContent = String(summary.totalNudgesDue || 0);
   }
+  if (adminTotalPracticePlansEl) {
+    adminTotalPracticePlansEl.textContent = String(summary.totalPracticePlans || 0);
+  }
+  if (adminSupervisorUsersEl) {
+    adminSupervisorUsersEl.textContent = String(summary.usersInSupervisorMode || 0);
+  }
   if (adminDisableRegistrationEl) {
     adminDisableRegistrationEl.checked = Boolean(summary.registrationDisabled);
+  }
+  if (adminSupervisorModeEl) {
+    adminSupervisorModeEl.checked = Boolean(summary.supervisorModeEnabled);
   }
   if (adminTopUseCasesEl) {
     const labels = Array.isArray(summary.topUseCases)
@@ -1077,9 +1349,12 @@ function renderAdminDashboard(dashboard) {
     const statusMeta = document.createElement("p");
     statusMeta.className = "muted";
     const nudgeSummary = user.nudgeSummary || {};
+    const practiceSummary = user.practicePlansSummary || {};
     statusMeta.textContent = `Must change password: ${
       user.mustChangePassword ? "Yes" : "No"
-    } | Nudges due: ${nudgeSummary.due || 0}`;
+    } | Supervisor mode: ${user.supervisorMode ? "On" : "Off"} | Nudges due: ${
+      nudgeSummary.due || 0
+    } | Active plans: ${practiceSummary.active || 0}`;
     statusCell.appendChild(statusMeta);
     row.appendChild(statusCell);
 
@@ -1100,7 +1375,11 @@ function renderAdminDashboard(dashboard) {
     usedForCell.textContent = formatUseCaseList(user.usedFor, 3);
     const usedForMeta = document.createElement("p");
     usedForMeta.className = "muted";
-    usedForMeta.textContent = `Focus: ${user.focusAreas || "Not set"}`;
+    const personaName = user?.selectedStakeholderPersona?.name || "None";
+    const playbookName = user?.selectedPlaybook?.name || "None";
+    usedForMeta.textContent = `Focus: ${
+      user.focusAreas || "Not set"
+    } | Persona: ${personaName} | Playbook: ${playbookName}`;
     usedForCell.appendChild(usedForMeta);
     row.appendChild(usedForCell);
 
@@ -1254,12 +1533,13 @@ async function runAdminUserAction(userId, action, extra = {}) {
 async function saveAdminSettings() {
   if (!state.user || !state.user.isAdmin) return;
   const registrationDisabled = Boolean(adminDisableRegistrationEl?.checked);
+  const supervisorModeEnabled = Boolean(adminSupervisorModeEl?.checked);
   setAdminSettingsStatus("Saving...");
   if (saveAdminSettingsBtn) saveAdminSettingsBtn.disabled = true;
   try {
     const payload = await apiRequest("/api/admin/settings", {
       method: "PUT",
-      body: JSON.stringify({ registrationDisabled }),
+      body: JSON.stringify({ registrationDisabled, supervisorModeEnabled }),
     });
     if (payload.settings) {
       applyAppSettings(payload.settings);
@@ -1483,6 +1763,144 @@ async function updateNudge(nudgeId, updates) {
     setNudgeStatus("Nudge updated.");
   } catch (err) {
     setNudgeStatus(err.message);
+  }
+}
+
+function applyPersonaAndPlaybookSelectors(user = null) {
+  const selectedPersona = String(user?.selectedStakeholderPersonaId || "");
+  const selectedPlaybook = String(user?.selectedPlaybookId || "");
+  setSelectOptions(
+    stakeholderPersonaSelectEl,
+    state.personas,
+    selectedPersona,
+    "None selected",
+  );
+  setSelectOptions(
+    domainPlaybookSelectEl,
+    state.playbooks,
+    selectedPlaybook,
+    "None selected",
+  );
+
+  const practicePersona =
+    String(practicePlanPersonaSelectEl?.value || selectedPersona || "");
+  const practiceDomain =
+    String(practicePlanDomainSelectEl?.value || selectedPlaybook || "");
+  setSelectOptions(
+    practicePlanPersonaSelectEl,
+    state.personas,
+    practicePersona,
+    "None selected",
+  );
+  setSelectOptions(
+    practicePlanDomainSelectEl,
+    state.playbooks,
+    practiceDomain,
+    "None selected",
+  );
+}
+
+async function loadCoachLibraries({ quiet = false } = {}) {
+  if (!state.user) return;
+  try {
+    const [personaPayload, playbookPayload] = await Promise.all([
+      apiRequest("/api/personas", { method: "GET" }),
+      apiRequest("/api/playbooks", { method: "GET" }),
+    ]);
+    state.personas = Array.isArray(personaPayload.personas)
+      ? personaPayload.personas
+      : [];
+    state.playbooks = Array.isArray(playbookPayload.playbooks)
+      ? playbookPayload.playbooks
+      : [];
+    renderPersonaLibrary(state.personas);
+    renderPlaybookLibrary(state.playbooks);
+    applyPersonaAndPlaybookSelectors(state.user);
+  } catch (err) {
+    if (!quiet) {
+      setProfileStatus(`Library load failed: ${err.message}`);
+    }
+  }
+}
+
+async function loadPracticePlans({ quiet = false } = {}) {
+  if (!state.user) return;
+  if (!quiet) setPracticePlanStatus("Loading practice plans...");
+  try {
+    const payload = await apiRequest("/api/practice-plans", { method: "GET" });
+    renderPracticePlans(Array.isArray(payload.plans) ? payload.plans : []);
+    if (!quiet) {
+      const summary = payload.summary || {};
+      setPracticePlanStatus(
+        `${summary.active || 0} active, ${summary.completed || 0} completed.`,
+      );
+    }
+  } catch (err) {
+    if (!quiet) setPracticePlanStatus(err.message);
+  }
+}
+
+async function createPracticePlan() {
+  if (!state.user) return;
+  const title = String(practicePlanTitleInputEl?.value || "").trim();
+  const objective = String(practicePlanObjectiveInputEl?.value || "").trim();
+  const actions = String(practicePlanActionsInputEl?.value || "").trim();
+  const cadence = String(practicePlanCadenceSelectEl?.value || "weekly");
+  const stakeholderPersonaId = String(practicePlanPersonaSelectEl?.value || "");
+  const domainId = String(practicePlanDomainSelectEl?.value || "");
+  const dueAtRaw = String(practicePlanDueAtInputEl?.value || "");
+
+  if (!title) {
+    setPracticePlanStatus("Plan title is required.");
+    return;
+  }
+
+  setPracticePlanStatus("Creating practice plan...");
+  if (createPracticePlanBtn) createPracticePlanBtn.disabled = true;
+  try {
+    const payload = await apiRequest("/api/practice-plans", {
+      method: "POST",
+      body: JSON.stringify({
+        title,
+        objective,
+        actions,
+        cadence,
+        stakeholderPersonaId,
+        domainId,
+        nextDueAt: dueAtRaw ? new Date(dueAtRaw).toISOString() : "",
+      }),
+    });
+    if (payload.user) {
+      applyUserToUI(payload.user);
+    }
+    renderPracticePlans(Array.isArray(payload.plans) ? payload.plans : []);
+    clearPracticePlanInputs();
+    setPracticePlanStatus("Practice plan created.");
+  } catch (err) {
+    setPracticePlanStatus(err.message);
+  } finally {
+    if (createPracticePlanBtn) createPracticePlanBtn.disabled = false;
+  }
+}
+
+async function updatePracticePlan(planId, updates) {
+  if (!state.user) return;
+  setPracticePlanStatus("Updating practice plan...");
+  try {
+    const payload = await apiRequest(
+      `/api/practice-plans/${encodeURIComponent(planId)}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(updates || {}),
+      },
+    );
+    if (payload.user) {
+      applyUserToUI(payload.user);
+    }
+    renderPracticePlans(Array.isArray(payload.plans) ? payload.plans : []);
+    setPracticePlanStatus("Practice plan updated.");
+  } catch (err) {
+    setPracticePlanStatus(err.message);
   }
 }
 
@@ -1922,6 +2340,11 @@ function applyUserToUI(user) {
   profileNameEl.value = user.displayName || "";
   profileRoleEl.value = user.role || "";
   profileFocusEl.value = user.focusAreas || "";
+  if (supervisorModeToggleEl) {
+    const supervisorEnabled = Boolean(state.appSettings?.supervisorModeEnabled);
+    supervisorModeToggleEl.checked = Boolean(user.supervisorMode && supervisorEnabled);
+    supervisorModeToggleEl.disabled = !supervisorEnabled;
+  }
   coachingToneEl.value = normalizeCoachingTone(user.coachingTone);
   if (sessionPaceEl) {
     sessionPaceEl.value = getSessionPace();
@@ -1930,6 +2353,7 @@ function applyUserToUI(user) {
     adminMenuBtn.classList.toggle("hidden", !Boolean(user.isAdmin));
   }
   applyCoachStyleWeightsToInputs(user.coachStyleWeights);
+  applyPersonaAndPlaybookSelectors(user);
   const nudgeSummary = user.nudgeSummary || {};
   if (nudgeStatusEl && state.user) {
     const due = Number(nudgeSummary.due || 0);
@@ -1937,6 +2361,17 @@ function applyUserToUI(user) {
       setNudgeStatus(`${due} nudge${due === 1 ? "" : "s"} due.`);
     } else if (Number(nudgeSummary.total || 0) > 0) {
       setNudgeStatus(`${nudgeSummary.total} nudge${nudgeSummary.total === 1 ? "" : "s"} scheduled.`);
+    }
+  }
+  const practiceSummary = user.practicePlansSummary || {};
+  if (practicePlanStatusEl) {
+    const total = Number(practiceSummary.total || 0);
+    if (total > 0) {
+      setPracticePlanStatus(
+        `${practiceSummary.active || 0} active, ${practiceSummary.completed || 0} completed (${total} total).`,
+      );
+    } else {
+      setPracticePlanStatus("No practice plans yet.");
     }
   }
   setPasswordStatus(
@@ -1985,8 +2420,11 @@ function showAuthenticatedUI(user, settings = null) {
   clearFeedbackInputs();
   setFeedbackStatus("");
   clearNudgeInputs();
+  clearPracticePlanInputs();
   setAdminCreateUserStatus("");
+  loadCoachLibraries({ quiet: true });
   loadNudges({ quiet: true });
+  loadPracticePlans({ quiet: true });
   if (user.mustChangePassword) {
     setView("settings");
   } else {
@@ -2024,12 +2462,27 @@ function showSignedOutUI({ showSplash = true } = {}) {
   setProfileStatus("");
   setPasswordStatus("");
   setNudgeStatus("");
+  setPracticePlanStatus("");
   setFeedbackStatus("");
   setAdminSettingsStatus("");
   setAdminCreateUserStatus("");
   clearFeedbackInputs();
   if (nudgeListEl) nudgeListEl.innerHTML = "";
+  if (practicePlanListEl) practicePlanListEl.innerHTML = "";
+  if (personaLibraryListEl) personaLibraryListEl.innerHTML = "";
+  if (playbookLibraryListEl) playbookLibraryListEl.innerHTML = "";
+  state.personas = [];
+  state.playbooks = [];
+  state.practicePlans = [];
   coachingToneEl.value = DEFAULT_COACHING_TONE;
+  if (supervisorModeToggleEl) {
+    supervisorModeToggleEl.checked = false;
+    supervisorModeToggleEl.disabled = !Boolean(state.appSettings?.supervisorModeEnabled);
+  }
+  if (stakeholderPersonaSelectEl) stakeholderPersonaSelectEl.value = "";
+  if (domainPlaybookSelectEl) domainPlaybookSelectEl.value = "";
+  if (practicePlanPersonaSelectEl) practicePlanPersonaSelectEl.value = "";
+  if (practicePlanDomainSelectEl) practicePlanDomainSelectEl.value = "";
   if (sessionPaceEl) sessionPaceEl.value = getSessionPace();
   state.sessionPace = getSessionPace();
   applyCoachStyleWeightsToInputs(DEFAULT_STYLE_WEIGHTS);
@@ -2324,6 +2777,11 @@ async function handleProfileSave() {
         displayName: profileNameEl.value.trim(),
         role: profileRoleEl.value.trim(),
         focusAreas: profileFocusEl.value.trim(),
+        supervisorMode: Boolean(supervisorModeToggleEl?.checked),
+        selectedStakeholderPersonaId: String(
+          stakeholderPersonaSelectEl?.value || "",
+        ),
+        selectedPlaybookId: String(domainPlaybookSelectEl?.value || ""),
         coachingTone: normalizeCoachingTone(coachingToneEl.value),
         coachStyleWeights: getCoachStyleWeightsFromInputs(),
       }),
@@ -2391,6 +2849,28 @@ if (addNudgeBtn) {
 if (refreshNudgesBtn) {
   refreshNudgesBtn.addEventListener("click", () => loadNudges());
 }
+if (createPracticePlanBtn) {
+  createPracticePlanBtn.addEventListener("click", createPracticePlan);
+}
+if (refreshPracticePlansBtn) {
+  refreshPracticePlansBtn.addEventListener("click", () =>
+    loadPracticePlans({ quiet: false }),
+  );
+}
+if (stakeholderPersonaSelectEl) {
+  stakeholderPersonaSelectEl.addEventListener("change", () => {
+    if (practicePlanPersonaSelectEl && !practicePlanPersonaSelectEl.value) {
+      practicePlanPersonaSelectEl.value = stakeholderPersonaSelectEl.value || "";
+    }
+  });
+}
+if (domainPlaybookSelectEl) {
+  domainPlaybookSelectEl.addEventListener("change", () => {
+    if (practicePlanDomainSelectEl && !practicePlanDomainSelectEl.value) {
+      practicePlanDomainSelectEl.value = domainPlaybookSelectEl.value || "";
+    }
+  });
+}
 if (submitFeedbackBtn) {
   submitFeedbackBtn.addEventListener("click", submitSessionFeedback);
 }
@@ -2403,7 +2883,9 @@ if (adminCreateUserBtn) {
 accountMenuBtn.addEventListener("click", () => {
   if (!state.user) return;
   setView("settings");
+  loadCoachLibraries({ quiet: true });
   loadNudges({ quiet: true });
+  loadPracticePlans({ quiet: true });
 });
 adminMenuBtn.addEventListener("click", () => {
   if (!state.user || !state.user.isAdmin) return;
@@ -2475,6 +2957,7 @@ if ("speechSynthesis" in window) {
 loadSpeechSettings();
 loadDraft();
 clearNudgeInputs();
+clearPracticePlanInputs();
 clearFeedbackInputs();
 clearAdminCreateUserForm();
 applyAppSettings(state.appSettings);

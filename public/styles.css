@@ -376,6 +376,39 @@ textarea {
   margin-top: 0.65rem;
 }
 
+.practice-panel {
+  margin-top: 0.95rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border);
+}
+
+.practice-panel h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.practice-panel .timeline {
+  margin-top: 0.65rem;
+}
+
+.practice-item-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.practice-meta {
+  margin-top: 0.15rem;
+}
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-top: 0.8rem;
+}
+
 .nudge-item-head {
   display: flex;
   justify-content: space-between;
@@ -1117,6 +1150,10 @@ textarea {
 
   .admin-summary-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .library-grid {
+    grid-template-columns: 1fr;
   }
 
   .options {

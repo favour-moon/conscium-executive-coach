@@ -152,6 +152,27 @@
             <input id="profileFocus" type="text" />
           </div>
           <div class="full-width">
+            <label class="inline-option" for="supervisorModeToggle">
+              <input id="supervisorModeToggle" type="checkbox" />
+              Enable supervisor mode (higher challenge and tighter accountability)
+            </label>
+            <p id="supervisorModeHint" class="muted">
+              Supervisor mode adds more direct challenge and commitment checks.
+            </p>
+          </div>
+          <div class="full-width">
+            <label for="stakeholderPersonaSelect">Primary stakeholder persona</label>
+            <select id="stakeholderPersonaSelect">
+              <option value="">None selected</option>
+            </select>
+          </div>
+          <div class="full-width">
+            <label for="domainPlaybookSelect">Primary domain playbook</label>
+            <select id="domainPlaybookSelect">
+              <option value="">None selected</option>
+            </select>
+          </div>
+          <div class="full-width">
             <label for="coachingTone">Coaching tone</label>
             <select id="coachingTone">
               <option value="supportive">More supportive</option>
@@ -251,6 +272,17 @@
           </div>
         </div>
 
+        <div class="library-grid">
+          <article class="dash-card">
+            <h3>Stakeholder persona library</h3>
+            <ul id="personaLibraryList" class="dash-bullets"></ul>
+          </article>
+          <article class="dash-card">
+            <h3>Domain playbook library</h3>
+            <ul id="playbookLibraryList" class="dash-bullets"></ul>
+          </article>
+        </div>
+
         <details class="constitution-panel">
           <summary>Coaching Constitution (Version 2.0)</summary>
           <div class="constitution-content">
@@ -338,6 +370,67 @@
             <span id="nudgeStatus" class="status"></span>
           </div>
           <ul id="nudgeList" class="timeline"></ul>
+        </div>
+
+        <div class="practice-panel">
+          <h3>Practice plans</h3>
+          <p class="muted">
+            Build deliberate-practice loops linked to a stakeholder persona and playbook.
+          </p>
+          <div class="profile-grid">
+            <div>
+              <label for="practicePlanTitleInput">Plan title</label>
+              <input id="practicePlanTitleInput" type="text" placeholder="Executive briefing rehearsal" />
+            </div>
+            <div>
+              <label for="practicePlanCadenceSelect">Cadence</label>
+              <select id="practicePlanCadenceSelect">
+                <option value="daily">Daily</option>
+                <option value="weekly" selected>Weekly</option>
+                <option value="biweekly">Biweekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="ad_hoc">Ad hoc</option>
+              </select>
+            </div>
+            <div class="full-width">
+              <label for="practicePlanObjectiveInput">Objective</label>
+              <textarea
+                id="practicePlanObjectiveInput"
+                rows="2"
+                placeholder="What behavior or conversation outcome are you practicing?"
+              ></textarea>
+            </div>
+            <div class="full-width">
+              <label for="practicePlanActionsInput">Actions (comma, semicolon, or new line separated)</label>
+              <textarea
+                id="practicePlanActionsInput"
+                rows="2"
+                placeholder="Example: open with desired outcome; test assumptions; close with a clear commitment"
+              ></textarea>
+            </div>
+            <div>
+              <label for="practicePlanPersonaSelect">Stakeholder persona</label>
+              <select id="practicePlanPersonaSelect">
+                <option value="">None selected</option>
+              </select>
+            </div>
+            <div>
+              <label for="practicePlanDomainSelect">Domain playbook</label>
+              <select id="practicePlanDomainSelect">
+                <option value="">None selected</option>
+              </select>
+            </div>
+            <div>
+              <label for="practicePlanDueAtInput">Next due date/time (optional)</label>
+              <input id="practicePlanDueAtInput" type="datetime-local" />
+            </div>
+          </div>
+          <div class="controls">
+            <button id="createPracticePlanBtn" class="btn">Create practice plan</button>
+            <button id="refreshPracticePlansBtn" class="btn">Refresh plans</button>
+            <span id="practicePlanStatus" class="status"></span>
+          </div>
+          <ul id="practicePlanList" class="timeline"></ul>
         </div>
 
         <div class="password-panel">
@@ -504,6 +597,14 @@
             <h3>Nudges due</h3>
             <p class="admin-stat"><strong id="adminDueNudges">-</strong></p>
           </article>
+          <article class="dash-card">
+            <h3>Practice plans</h3>
+            <p class="admin-stat"><strong id="adminTotalPracticePlans">-</strong></p>
+          </article>
+          <article class="dash-card">
+            <h3>Supervisor mode users</h3>
+            <p class="admin-stat"><strong id="adminSupervisorUsers">-</strong></p>
+          </article>
         </div>
 
         <article class="dash-card">
@@ -516,6 +617,10 @@
           <label class="inline-option" for="adminDisableRegistration">
             <input id="adminDisableRegistration" type="checkbox" />
             Disable new account creation
+          </label>
+          <label class="inline-option" for="adminSupervisorMode">
+            <input id="adminSupervisorMode" type="checkbox" />
+            Enable supervisor mode
           </label>
           <div class="controls">
             <button id="saveAdminSettingsBtn" class="btn">Save admin settings</button>

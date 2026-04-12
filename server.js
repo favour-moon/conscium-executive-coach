@@ -67,7 +67,184 @@ const DEFAULT_COACH_STYLE_WEIGHTS = Object.freeze({
 });
 const DEFAULT_APP_SETTINGS = Object.freeze({
   registrationDisabled: false,
+  supervisorModeEnabled: true,
 });
+const MAX_PRACTICE_PLANS_PER_USER = 60;
+const PRACTICE_PLAN_STATUS = new Set(["active", "paused", "completed"]);
+const PRACTICE_PLAN_CADENCE = new Set([
+  "daily",
+  "weekly",
+  "biweekly",
+  "monthly",
+  "ad_hoc",
+]);
+const STAKEHOLDER_PERSONAS = Object.freeze([
+  {
+    id: "skeptical-cfo",
+    name: "Skeptical CFO",
+    archetype: "Risk and control leader",
+    priorities: [
+      "Financial risk exposure",
+      "Return on investment",
+      "Execution feasibility",
+    ],
+    pressureStyle: "Analytical and demanding",
+    guidance:
+      "Use quantifiable outcomes, downside scenarios, and explicit trade-off logic.",
+  },
+  {
+    id: "operational-sponsor",
+    name: "Operational Sponsor",
+    archetype: "Delivery-oriented executive",
+    priorities: ["Predictable delivery", "Clear accountability", "Operational continuity"],
+    pressureStyle: "Direct and pace-focused",
+    guidance:
+      "Lead with timelines, ownership, dependencies, and mitigation plans.",
+  },
+  {
+    id: "policy-guardian",
+    name: "Policy Guardian",
+    archetype: "Compliance and governance authority",
+    priorities: ["Regulatory integrity", "Reputation protection", "Decision traceability"],
+    pressureStyle: "Cautious and detail-sensitive",
+    guidance:
+      "Show governance controls, escalation paths, and documented rationale.",
+  },
+  {
+    id: "transformation-advocate",
+    name: "Transformation Advocate",
+    archetype: "Innovation-minded sponsor",
+    priorities: ["Strategic ambition", "Speed of change", "Capability uplift"],
+    pressureStyle: "Future-focused and impatient",
+    guidance:
+      "Frame strategic upside, phased wins, and organizational learning effects.",
+  },
+  {
+    id: "team-morale-defender",
+    name: "Team Morale Defender",
+    archetype: "People and culture leader",
+    priorities: ["Psychological safety", "Fairness and trust", "Sustainable pace"],
+    pressureStyle: "Empathic but firm on values",
+    guidance:
+      "Balance performance accountability with dignity, support, and clear expectations.",
+  },
+  {
+    id: "ministerial-principal",
+    name: "Ministerial Principal",
+    archetype: "Senior public stakeholder",
+    priorities: ["Public impact", "Political credibility", "Delivery confidence"],
+    pressureStyle: "High-stakes and outcome-driven",
+    guidance:
+      "Use concise narrative, confidence intervals, and clear decision asks.",
+  },
+  {
+    id: "cross-functional-peer",
+    name: "Cross-Functional Peer",
+    archetype: "Influential lateral partner",
+    priorities: ["Mutual wins", "Resource fairness", "Interdependency clarity"],
+    pressureStyle: "Negotiation-heavy",
+    guidance:
+      "Clarify shared objectives, boundary conditions, and reciprocal commitments.",
+  },
+  {
+    id: "underperforming-direct-report",
+    name: "Underperforming Direct Report",
+    archetype: "Capability under pressure",
+    priorities: ["Role clarity", "Support and development", "Fair evaluation"],
+    pressureStyle: "Defensive or withdrawn",
+    guidance:
+      "Use specific behavioral evidence, future-focused expectations, and support commitments.",
+  },
+]);
+const DOMAIN_PLAYBOOKS = Object.freeze([
+  {
+    id: "underperformance-conversations",
+    name: "Underperformance Conversations",
+    context:
+      "Addressing repeated gaps in delivery, behavior, or quality while preserving trust and fairness.",
+    coreMoves: [
+      "State observable facts and impact",
+      "Invite perspective before judgement",
+      "Agree explicit standards and timeframes",
+      "Define support plus consequences",
+    ],
+    pitfalls: [
+      "Over-softening expectations",
+      "Jumping to blame",
+      "Leaving actions or timelines vague",
+    ],
+  },
+  {
+    id: "stakeholder-alignment",
+    name: "Stakeholder Alignment",
+    context:
+      "Securing alignment across stakeholders with conflicting incentives and incomplete information.",
+    coreMoves: [
+      "Map interests, influence, and constraints",
+      "Surface non-negotiables early",
+      "Frame trade-offs explicitly",
+      "Land clear next decision owner",
+    ],
+    pitfalls: ["Assuming shared definitions", "Ignoring latent blockers", "No follow-through cadence"],
+  },
+  {
+    id: "strategic-decision-making",
+    name: "Strategic Decision-Making",
+    context:
+      "Making high-impact choices under uncertainty with speed and defensible reasoning.",
+    coreMoves: [
+      "Define decision frame and horizon",
+      "Identify options and opportunity cost",
+      "Assess second-order effects",
+      "Commit and set review trigger points",
+    ],
+    pitfalls: ["Analysis paralysis", "Hidden assumptions", "Weak reversal criteria"],
+  },
+  {
+    id: "delegation-and-empowerment",
+    name: "Delegation and Empowerment",
+    context: "Scaling leadership impact by assigning ownership without loss of control.",
+    coreMoves: [
+      "Clarify outcome and decision rights",
+      "Agree guardrails and escalation rules",
+      "Match support to capability maturity",
+      "Review outcomes not activity",
+    ],
+    pitfalls: ["Micromanagement", "Ambiguous authority", "Delayed feedback loops"],
+  },
+  {
+    id: "crisis-communication",
+    name: "Crisis Communication",
+    context:
+      "Leading communication in volatile conditions where confidence, speed, and clarity matter.",
+    coreMoves: [
+      "Lead with known facts and unknowns",
+      "Set immediate priorities and owners",
+      "Create update cadence and channels",
+      "Close with confidence and contingency",
+    ],
+    pitfalls: ["Over-reassurance", "Message inconsistency", "Slow correction of new facts"],
+  },
+  {
+    id: "board-and-exco-briefing",
+    name: "Board and ExCo Briefing",
+    context:
+      "Condensing complexity into strategic narrative and decision-ready recommendations.",
+    coreMoves: [
+      "Start with decision required",
+      "Summarize evidence and risk posture",
+      "Present options with trade-offs",
+      "State recommendation and ask",
+    ],
+    pitfalls: ["Too much operational detail", "Unclear recommendation", "No quantified downside"],
+  },
+]);
+const STAKEHOLDER_PERSONA_MAP = new Map(
+  STAKEHOLDER_PERSONAS.map((persona) => [persona.id, persona]),
+);
+const DOMAIN_PLAYBOOK_MAP = new Map(
+  DOMAIN_PLAYBOOKS.map((playbook) => [playbook.id, playbook]),
+);
 const COACHING_CONSTITUTION_VERSION = "2.0";
 const ANALYSIS_MODEL = process.env.OPENAI_ANALYSIS_MODEL || MODEL;
 const PROFILE_RETENTION_DAYS = 365;
@@ -513,6 +690,10 @@ function normalizeAppSettings(value) {
       typeof source.registrationDisabled === "boolean"
         ? source.registrationDisabled
         : DEFAULT_APP_SETTINGS.registrationDisabled,
+    supervisorModeEnabled:
+      typeof source.supervisorModeEnabled === "boolean"
+        ? source.supervisorModeEnabled
+        : DEFAULT_APP_SETTINGS.supervisorModeEnabled,
   };
 }
 
@@ -520,6 +701,95 @@ function getAppSettings() {
   const normalized = normalizeAppSettings(userStore.appSettings);
   userStore.appSettings = normalized;
   return normalized;
+}
+
+function normalizeStakeholderPersonaId(value, fallback = "") {
+  const candidate = sanitizeText(value, 80).toLowerCase();
+  if (candidate && STAKEHOLDER_PERSONA_MAP.has(candidate)) return candidate;
+  return fallback;
+}
+
+function normalizePlaybookId(value, fallback = "") {
+  const candidate = sanitizeText(value, 80).toLowerCase();
+  if (candidate && DOMAIN_PLAYBOOK_MAP.has(candidate)) return candidate;
+  return fallback;
+}
+
+function getStakeholderPersona(personaId) {
+  const normalized = normalizeStakeholderPersonaId(personaId, "");
+  return normalized ? STAKEHOLDER_PERSONA_MAP.get(normalized) || null : null;
+}
+
+function getDomainPlaybook(playbookId) {
+  const normalized = normalizePlaybookId(playbookId, "");
+  return normalized ? DOMAIN_PLAYBOOK_MAP.get(normalized) || null : null;
+}
+
+function normalizePracticePlanStatus(value, fallback = "active") {
+  const candidate = sanitizeText(value, 24).toLowerCase();
+  return PRACTICE_PLAN_STATUS.has(candidate) ? candidate : fallback;
+}
+
+function normalizePracticePlanCadence(value, fallback = "weekly") {
+  const candidate = sanitizeText(value, 24).toLowerCase();
+  return PRACTICE_PLAN_CADENCE.has(candidate) ? candidate : fallback;
+}
+
+function normalizeOptionalIsoDate(value) {
+  const ms = toMs(value);
+  return ms ? new Date(ms).toISOString() : "";
+}
+
+function normalizePracticePlanRecord(item) {
+  const now = newIsoNow();
+  const completedCountRaw = Number.parseInt(String(item?.completedCount), 10);
+  const completedCount =
+    Number.isFinite(completedCountRaw) && completedCountRaw > 0
+      ? Math.min(1000, completedCountRaw)
+      : 0;
+  return {
+    id: sanitizeText(item?.id, 80) || crypto.randomUUID(),
+    title: sanitizeText(item?.title, 140) || "Practice plan",
+    objective: sanitizeText(item?.objective, 420),
+    domainId: normalizePlaybookId(item?.domainId || item?.playbookId, ""),
+    stakeholderPersonaId: normalizeStakeholderPersonaId(
+      item?.stakeholderPersonaId || item?.personaId,
+      "",
+    ),
+    actions: sanitizeArray(item?.actions, 8, 200),
+    cadence: normalizePracticePlanCadence(item?.cadence, "weekly"),
+    status: normalizePracticePlanStatus(item?.status, "active"),
+    nextDueAt: normalizeOptionalIsoDate(item?.nextDueAt),
+    lastPracticedAt: normalizeOptionalIsoDate(item?.lastPracticedAt),
+    completedCount,
+    notes: sanitizeText(item?.notes, 420),
+    createdAt: sanitizeText(item?.createdAt, 40) || now,
+    updatedAt: sanitizeText(item?.updatedAt, 40) || now,
+  };
+}
+
+function normalizePracticePlans(value) {
+  const base = Array.isArray(value) ? value : [];
+  const cutoff = retentionCutoffMs();
+  return base
+    .map((item) => normalizePracticePlanRecord(item))
+    .filter((plan) => toMs(plan.updatedAt || plan.createdAt) >= cutoff)
+    .sort((a, b) => toMs(b.updatedAt || b.createdAt) - toMs(a.updatedAt || a.createdAt))
+    .slice(0, MAX_PRACTICE_PLANS_PER_USER);
+}
+
+function getPracticePlanSummary(plans) {
+  const list = Array.isArray(plans) ? plans : [];
+  const now = Date.now();
+  return {
+    total: list.length,
+    active: list.filter((plan) => plan.status === "active").length,
+    paused: list.filter((plan) => plan.status === "paused").length,
+    completed: list.filter((plan) => plan.status === "completed").length,
+    due: list.filter(
+      (plan) => plan.status === "active" && plan.nextDueAt && toMs(plan.nextDueAt) <= now,
+    ).length,
+  };
 }
 
 function normalizeFeedbackLoop(input) {
@@ -892,8 +1162,34 @@ function buildDashboardFromProfile(user) {
   };
 }
 
+function publicPracticePlan(plan) {
+  const normalized = normalizePracticePlanRecord(plan);
+  const persona = getStakeholderPersona(normalized.stakeholderPersonaId);
+  const playbook = getDomainPlaybook(normalized.domainId);
+  return {
+    ...normalized,
+    stakeholderPersona: persona
+      ? {
+          id: persona.id,
+          name: persona.name,
+          archetype: persona.archetype,
+        }
+      : null,
+    playbook: playbook
+      ? {
+          id: playbook.id,
+          name: playbook.name,
+        }
+      : null,
+  };
+}
+
 function publicUser(user) {
   const profile = ensureUserCoachingProfile(user);
+  const persona = getStakeholderPersona(user.selectedStakeholderPersonaId);
+  const playbook = getDomainPlaybook(user.selectedPlaybookId);
+  const practicePlans = normalizePracticePlans(user.practicePlans);
+  user.practicePlans = practicePlans;
   syncUserNudges(user);
   return {
     id: user.id,
@@ -907,6 +1203,28 @@ function publicUser(user) {
       user.coachStyleWeights,
       user.coachStyle,
     ),
+    supervisorMode: Boolean(user.supervisorMode),
+    selectedStakeholderPersonaId: normalizeStakeholderPersonaId(
+      user.selectedStakeholderPersonaId,
+      "",
+    ),
+    selectedPlaybookId: normalizePlaybookId(user.selectedPlaybookId, ""),
+    selectedStakeholderPersona: persona
+      ? {
+          id: persona.id,
+          name: persona.name,
+          archetype: persona.archetype,
+          pressureStyle: persona.pressureStyle,
+        }
+      : null,
+    selectedPlaybook: playbook
+      ? {
+          id: playbook.id,
+          name: playbook.name,
+          context: playbook.context,
+        }
+      : null,
+    practicePlansSummary: getPracticePlanSummary(practicePlans),
     profileUpdatedAt: profile.updatedAt,
     mustChangePassword: Boolean(user.mustChangePassword),
     isActive: Boolean(user.isActive !== false),
@@ -1000,6 +1318,7 @@ function isAdminUser(user) {
 
 function buildUserContext(user) {
   const profile = ensureUserCoachingProfile(user);
+  const appSettings = getAppSettings();
   const coachingTone = normalizeCoachingTone(
     user.coachingTone,
     DEFAULT_COACHING_TONE,
@@ -1008,6 +1327,12 @@ function buildUserContext(user) {
     user.coachStyleWeights,
     user.coachStyle,
   );
+  const supervisorMode = Boolean(user.supervisorMode && appSettings.supervisorModeEnabled);
+  const persona = getStakeholderPersona(user.selectedStakeholderPersonaId);
+  const playbook = getDomainPlaybook(user.selectedPlaybookId);
+  const practicePlans = normalizePracticePlans(user.practicePlans);
+  const practiceSummary = getPracticePlanSummary(practicePlans);
+  const activePracticePlans = practicePlans.filter((plan) => plan.status === "active");
   const dominantStyles = getDominantStyles(weights).map(
     (key) => COACH_STYLE_CONFIG[key].label,
   );
@@ -1023,6 +1348,25 @@ function buildUserContext(user) {
     `- Big Five (1-10): openness=${profile.personality.bigFive.openness}, conscientiousness=${profile.personality.bigFive.conscientiousness}, extraversion=${profile.personality.bigFive.extraversion}, agreeableness=${profile.personality.bigFive.agreeableness}, neuroticism=${profile.personality.bigFive.neuroticism}`,
     `- MBTI: ${profile.personality.mbti}`,
     `- DISC: ${profile.personality.disc}`,
+    `- Supervisor mode: ${supervisorMode ? "enabled" : "disabled"}`,
+    persona
+      ? `- Selected stakeholder persona: ${persona.name} (${persona.archetype}). Pressure style: ${persona.pressureStyle}. Priorities: ${persona.priorities.join(", ")}. Guidance: ${persona.guidance}`
+      : "- Selected stakeholder persona: none",
+    playbook
+      ? `- Selected domain playbook: ${playbook.name}. Context: ${playbook.context}. Core moves: ${playbook.coreMoves.join("; ")}. Pitfalls: ${playbook.pitfalls.join("; ")}`
+      : "- Selected domain playbook: none",
+    `- Practice plan summary: total=${practiceSummary.total}, active=${practiceSummary.active}, due=${practiceSummary.due}, completed=${practiceSummary.completed}`,
+    ...activePracticePlans.slice(0, 3).map((plan, index) => {
+      const playbookName =
+        getDomainPlaybook(plan.domainId)?.name || "No playbook selected";
+      const personaName =
+        getStakeholderPersona(plan.stakeholderPersonaId)?.name || "No persona selected";
+      const actions =
+        Array.isArray(plan.actions) && plan.actions.length
+          ? plan.actions.join("; ")
+          : "No actions specified";
+      return `- Active practice plan ${index + 1}: ${plan.title}. Objective: ${plan.objective || "Not specified"}. Cadence: ${plan.cadence}. Next due: ${plan.nextDueAt || "unscheduled"}. Playbook: ${playbookName}. Persona: ${personaName}. Actions: ${actions}`;
+    }),
     `- Conversational coaching tone preference: ${coachingTone}`,
     "- Coaching style intensity profile (1=low, 5=high):",
     ...STYLE_KEYS.map(
@@ -1041,6 +1385,9 @@ function buildUserContext(user) {
       return `  - ${COACH_STYLE_CONFIG[key].label} (${emphasis} emphasis): ${COACH_STYLE_CONFIG[key].instruction}`;
     }),
     `- Apply tone preference: ${COACH_TONE_CONFIG[coachingTone]}`,
+    supervisorMode
+      ? "- Supervisor mode behavior: be more exacting and accountability-led. Challenge weak assumptions, insist on evidence, and always land one explicit commitment with owner and deadline."
+      : "- Supervisor mode behavior: standard coaching stance.",
     "- Keep flow conversational. Ask one question, then wait. Avoid list-heavy outputs.",
   ];
   return lines.join("\n");
@@ -1269,6 +1616,35 @@ function normalizeUsers() {
       changed = true;
     }
 
+    const supervisorMode = Boolean(user.supervisorMode);
+    if (user.supervisorMode !== supervisorMode) {
+      user.supervisorMode = supervisorMode;
+      changed = true;
+    }
+
+    const normalizedPersonaId = normalizeStakeholderPersonaId(
+      user.selectedStakeholderPersonaId,
+      "",
+    );
+    if (user.selectedStakeholderPersonaId !== normalizedPersonaId) {
+      user.selectedStakeholderPersonaId = normalizedPersonaId;
+      changed = true;
+    }
+
+    const normalizedPlaybookId = normalizePlaybookId(user.selectedPlaybookId, "");
+    if (user.selectedPlaybookId !== normalizedPlaybookId) {
+      user.selectedPlaybookId = normalizedPlaybookId;
+      changed = true;
+    }
+
+    const normalizedPracticePlans = normalizePracticePlans(user.practicePlans);
+    if (
+      JSON.stringify(user.practicePlans || []) !== JSON.stringify(normalizedPracticePlans)
+    ) {
+      user.practicePlans = normalizedPracticePlans;
+      changed = true;
+    }
+
     const normalizedProfile = normalizeCoachingProfile(user.coachingProfile);
     if (
       JSON.stringify(user.coachingProfile || {}) !==
@@ -1326,6 +1702,10 @@ async function ensureDefaultAdminUser() {
     focusAreas: "leadership decisions,difficult conversations",
     coachingTone: DEFAULT_COACHING_TONE,
     coachStyleWeights: { ...DEFAULT_COACH_STYLE_WEIGHTS },
+    supervisorMode: false,
+    selectedStakeholderPersonaId: "",
+    selectedPlaybookId: "",
+    practicePlans: [],
     coachingProfile: createDefaultCoachingProfile(),
     nudges: [],
     mustChangePassword: false,
@@ -1426,6 +1806,10 @@ async function handleRegister(req, res) {
       focusAreas,
       coachingTone,
       coachStyleWeights,
+      supervisorMode: false,
+      selectedStakeholderPersonaId: "",
+      selectedPlaybookId: "",
+      practicePlans: [],
       coachingProfile: createDefaultCoachingProfile(),
       nudges: [],
       mustChangePassword: false,
@@ -1573,6 +1957,11 @@ function buildAdminDashboard() {
   let totalDueNudges = 0;
   let totalScheduledNudges = 0;
   let activeUsers30d = 0;
+  let totalPracticePlans = 0;
+  let totalActivePracticePlans = 0;
+  let usersInSupervisorMode = 0;
+  let usersWithPersonaSelection = 0;
+  let usersWithPlaybookSelection = 0;
   let avgScoreAccum = 0;
   const globalUseCases = new Map();
 
@@ -1581,6 +1970,16 @@ function buildAdminDashboard() {
     const profile = ensureUserCoachingProfile(user);
     const logs = Array.isArray(profile.interactionLog) ? profile.interactionLog : [];
     const nudgeSummary = getNudgeSummary(user);
+    const practicePlans = normalizePracticePlans(user.practicePlans);
+    const practicePlansSummary = getPracticePlanSummary(practicePlans);
+    user.practicePlans = practicePlans;
+    const selectedStakeholderPersona = getStakeholderPersona(
+      user.selectedStakeholderPersonaId,
+    );
+    const selectedPlaybook = getDomainPlaybook(user.selectedPlaybookId);
+    if (user.supervisorMode) usersInSupervisorMode += 1;
+    if (selectedStakeholderPersona) usersWithPersonaSelection += 1;
+    if (selectedPlaybook) usersWithPlaybookSelection += 1;
     const lastInteractionAt =
       logs[logs.length - 1]?.timestamp || profile.updatedAt || user.updatedAt || "";
     const lastMs = toMs(lastInteractionAt);
@@ -1663,6 +2062,8 @@ function buildAdminDashboard() {
     totalFeedbackSubmissions += feedbackSubmissionCount;
     totalDueNudges += nudgeSummary.due;
     totalScheduledNudges += nudgeSummary.scheduled;
+    totalPracticePlans += practicePlansSummary.total;
+    totalActivePracticePlans += practicePlansSummary.active;
     avgScoreAccum += Number(profile.metrics?.averageCategoryScore || 0);
     const averageFeedbackScore =
       feedbackUserScoreCount > 0
@@ -1682,6 +2083,20 @@ function buildAdminDashboard() {
       updatedAt: user.updatedAt,
       profileUpdatedAt: profile.updatedAt,
       nudgeSummary,
+      supervisorMode: Boolean(user.supervisorMode),
+      selectedStakeholderPersona: selectedStakeholderPersona
+        ? {
+            id: selectedStakeholderPersona.id,
+            name: selectedStakeholderPersona.name,
+          }
+        : null,
+      selectedPlaybook: selectedPlaybook
+        ? {
+            id: selectedPlaybook.id,
+            name: selectedPlaybook.name,
+          }
+        : null,
+      practicePlansSummary,
       usage: {
         totalInteractions: logs.length,
         lastInteractionAt,
@@ -1743,9 +2158,15 @@ function buildAdminDashboard() {
       averageFeedbackScore: avgFeedbackScore,
       totalNudgesDue: totalDueNudges,
       totalNudgesScheduled: totalScheduledNudges,
+      totalPracticePlans,
+      totalActivePracticePlans,
+      usersInSupervisorMode,
+      usersWithPersonaSelection,
+      usersWithPlaybookSelection,
       averageCategoryScore: avgCategoryScore,
       topUseCases: topCounts(globalUseCases, 6),
       registrationDisabled: getAppSettings().registrationDisabled,
+      supervisorModeEnabled: getAppSettings().supervisorModeEnabled,
     },
     users: users.sort((a, b) => toMs(b.usage.lastInteractionAt) - toMs(a.usage.lastInteractionAt)),
   };
@@ -1777,8 +2198,17 @@ async function handleAdminSettingsUpdate(req, res) {
     const next = normalizeAppSettings({
       ...current,
       registrationDisabled: body.registrationDisabled,
+      supervisorModeEnabled: body.supervisorModeEnabled,
     });
     userStore.appSettings = next;
+    if (!next.supervisorModeEnabled) {
+      for (const item of userStore.users) {
+        if (item.supervisorMode) {
+          item.supervisorMode = false;
+          item.updatedAt = newIsoNow();
+        }
+      }
+    }
     await persistUsers();
     sendJson(res, 200, {
       ok: true,
@@ -1871,6 +2301,10 @@ async function handleAdminCreateUser(req, res) {
       focusAreas,
       coachingTone,
       coachStyleWeights,
+      supervisorMode: false,
+      selectedStakeholderPersonaId: "",
+      selectedPlaybookId: "",
+      practicePlans: [],
       coachingProfile: createDefaultCoachingProfile(),
       nudges: [],
       mustChangePassword,
@@ -2219,6 +2653,199 @@ async function handleNudgeUpdate(req, res, nudgeId) {
   }
 }
 
+function parsePracticePlanActions(value) {
+  if (Array.isArray(value)) {
+    return sanitizeArray(value, 8, 200);
+  }
+  const text = sanitizeText(value, 2000);
+  if (!text) return [];
+  const rawItems = text
+    .split(/\n|;|,/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return sanitizeArray(rawItems, 8, 200);
+}
+
+function handleStakeholderPersonas(req, res) {
+  const user = getAuthenticatedUser(req);
+  if (!user) {
+    unauthorized(res);
+    return;
+  }
+  sendJson(res, 200, {
+    personas: STAKEHOLDER_PERSONAS,
+  });
+}
+
+function handleDomainPlaybooks(req, res) {
+  const user = getAuthenticatedUser(req);
+  if (!user) {
+    unauthorized(res);
+    return;
+  }
+  sendJson(res, 200, {
+    playbooks: DOMAIN_PLAYBOOKS,
+  });
+}
+
+async function handlePracticePlansList(req, res) {
+  const user = getAuthenticatedUser(req);
+  if (!user) {
+    unauthorized(res);
+    return;
+  }
+  user.practicePlans = normalizePracticePlans(user.practicePlans);
+  sendJson(res, 200, {
+    plans: user.practicePlans.map((plan) => publicPracticePlan(plan)),
+    summary: getPracticePlanSummary(user.practicePlans),
+  });
+}
+
+async function handlePracticePlansCreate(req, res) {
+  const user = getAuthenticatedUser(req);
+  if (!user) {
+    unauthorized(res);
+    return;
+  }
+
+  try {
+    const existing = normalizePracticePlans(user.practicePlans);
+    if (existing.length >= MAX_PRACTICE_PLANS_PER_USER) {
+      sendJson(res, 400, {
+        error: `Maximum ${MAX_PRACTICE_PLANS_PER_USER} practice plans reached.`,
+      });
+      return;
+    }
+
+    const body = await parseBody(req);
+    const title = sanitizeText(body.title, 140);
+    if (!title) {
+      sendJson(res, 400, { error: "Practice plan title is required." });
+      return;
+    }
+
+    const now = newIsoNow();
+    const plan = normalizePracticePlanRecord({
+      title,
+      objective: body.objective,
+      domainId: body.domainId,
+      stakeholderPersonaId: body.stakeholderPersonaId,
+      actions: parsePracticePlanActions(body.actions),
+      cadence: body.cadence,
+      status: body.status || "active",
+      nextDueAt: body.nextDueAt,
+      notes: body.notes,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    user.practicePlans = normalizePracticePlans([plan, ...existing]);
+    user.updatedAt = now;
+    await persistUsers();
+    sendJson(res, 201, {
+      ok: true,
+      plan: publicPracticePlan(plan),
+      plans: user.practicePlans.map((item) => publicPracticePlan(item)),
+      summary: getPracticePlanSummary(user.practicePlans),
+      user: publicUser(user),
+    });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message || "Invalid practice plan request." });
+  }
+}
+
+async function handlePracticePlanUpdate(req, res, planId) {
+  const user = getAuthenticatedUser(req);
+  if (!user) {
+    unauthorized(res);
+    return;
+  }
+
+  try {
+    const plans = normalizePracticePlans(user.practicePlans);
+    const targetId = sanitizeText(planId, 80);
+    const index = plans.findIndex((item) => item.id === targetId);
+    if (index < 0) {
+      sendJson(res, 404, { error: "Practice plan not found." });
+      return;
+    }
+
+    const body = await parseBody(req);
+    const action = sanitizeText(body.action, 40).toLowerCase();
+    const target = { ...plans[index] };
+    const now = newIsoNow();
+
+    if (action === "mark_practiced" || action === "complete_session") {
+      target.lastPracticedAt = now;
+      target.completedCount = Math.min(
+        1000,
+        Number(target.completedCount || 0) + 1,
+      );
+      if (target.status !== "completed") {
+        target.status = "active";
+      }
+      if (body.nextDueAt) {
+        target.nextDueAt = normalizeOptionalIsoDate(body.nextDueAt);
+      }
+    } else if (action === "complete") {
+      target.status = "completed";
+      target.lastPracticedAt = target.lastPracticedAt || now;
+    } else if (action === "pause") {
+      target.status = "paused";
+    } else if (action === "activate") {
+      target.status = "active";
+    } else {
+      if (Object.hasOwn(body, "title")) {
+        target.title = sanitizeText(body.title, 140) || target.title;
+      }
+      if (Object.hasOwn(body, "objective")) {
+        target.objective = sanitizeText(body.objective, 420);
+      }
+      if (Object.hasOwn(body, "domainId")) {
+        target.domainId = normalizePlaybookId(body.domainId, target.domainId);
+      }
+      if (Object.hasOwn(body, "stakeholderPersonaId")) {
+        target.stakeholderPersonaId = normalizeStakeholderPersonaId(
+          body.stakeholderPersonaId,
+          target.stakeholderPersonaId,
+        );
+      }
+      if (Object.hasOwn(body, "actions")) {
+        target.actions = parsePracticePlanActions(body.actions);
+      }
+      if (Object.hasOwn(body, "cadence")) {
+        target.cadence = normalizePracticePlanCadence(body.cadence, target.cadence);
+      }
+      if (Object.hasOwn(body, "status")) {
+        target.status = normalizePracticePlanStatus(body.status, target.status);
+      }
+      if (Object.hasOwn(body, "nextDueAt")) {
+        target.nextDueAt = normalizeOptionalIsoDate(body.nextDueAt);
+      }
+      if (Object.hasOwn(body, "notes")) {
+        target.notes = sanitizeText(body.notes, 420);
+      }
+    }
+
+    target.updatedAt = now;
+    plans[index] = normalizePracticePlanRecord(target);
+    user.practicePlans = normalizePracticePlans(plans);
+    user.updatedAt = now;
+    await persistUsers();
+    const savedPlan =
+      user.practicePlans.find((item) => item.id === target.id) || target;
+    sendJson(res, 200, {
+      ok: true,
+      plan: publicPracticePlan(savedPlan),
+      plans: user.practicePlans.map((item) => publicPracticePlan(item)),
+      summary: getPracticePlanSummary(user.practicePlans),
+      user: publicUser(user),
+    });
+  } catch (err) {
+    sendJson(res, 400, { error: err.message || "Invalid practice plan update." });
+  }
+}
+
 async function handleProfileUpdate(req, res) {
   const user = getAuthenticatedUser(req);
   if (!user) {
@@ -2228,6 +2855,7 @@ async function handleProfileUpdate(req, res) {
 
   try {
     const body = await parseBody(req);
+    const appSettings = getAppSettings();
     const displayName = sanitizeText(body.displayName ?? user.displayName, 80);
     const role = sanitizeText(body.role ?? user.role, 120);
     const focusAreas = sanitizeText(body.focusAreas ?? user.focusAreas, 200);
@@ -2239,12 +2867,30 @@ async function handleProfileUpdate(req, res) {
       body.coachStyleWeights ?? user.coachStyleWeights,
       body.coachStyle ?? user.coachStyle,
     );
+    const selectedStakeholderPersonaId = normalizeStakeholderPersonaId(
+      body.selectedStakeholderPersonaId ?? user.selectedStakeholderPersonaId,
+      "",
+    );
+    const selectedPlaybookId = normalizePlaybookId(
+      body.selectedPlaybookId ?? user.selectedPlaybookId,
+      "",
+    );
+    const requestedSupervisorMode =
+      typeof body.supervisorMode === "boolean"
+        ? body.supervisorMode
+        : Boolean(user.supervisorMode);
+    const supervisorMode = appSettings.supervisorModeEnabled
+      ? requestedSupervisorMode
+      : false;
 
     user.displayName = displayName || user.displayName;
     user.role = role;
     user.focusAreas = focusAreas;
     user.coachingTone = coachingTone;
     user.coachStyleWeights = coachStyleWeights;
+    user.selectedStakeholderPersonaId = selectedStakeholderPersonaId;
+    user.selectedPlaybookId = selectedPlaybookId;
+    user.supervisorMode = supervisorMode;
     user.updatedAt = new Date().toISOString();
 
     await persistUsers();
@@ -2696,6 +3342,31 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === "POST" && pathname === "/api/admin/users") {
       await handleAdminCreateUser(req, res);
+      return;
+    }
+    if (req.method === "GET" && pathname === "/api/personas") {
+      handleStakeholderPersonas(req, res);
+      return;
+    }
+    if (req.method === "GET" && pathname === "/api/playbooks") {
+      handleDomainPlaybooks(req, res);
+      return;
+    }
+    if (req.method === "GET" && pathname === "/api/practice-plans") {
+      await handlePracticePlansList(req, res);
+      return;
+    }
+    if (req.method === "POST" && pathname === "/api/practice-plans") {
+      await handlePracticePlansCreate(req, res);
+      return;
+    }
+    const practicePlanMatch = pathname.match(/^\/api\/practice-plans\/([^/]+)$/);
+    if (req.method === "PUT" && practicePlanMatch) {
+      await handlePracticePlanUpdate(
+        req,
+        res,
+        decodeURIComponent(practicePlanMatch[1]),
+      );
       return;
     }
     const adminActionMatch = pathname.match(/^\/api\/admin\/users\/([^/]+)\/action$/);
