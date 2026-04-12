@@ -232,6 +232,10 @@ let ttsAnalyserConnected = false;
 let activeAudioEl = null;
 let speakAbortController = null;
 let speakToken = 0;
+let speechRecognitionBaseText = "";
+let speechRecognitionFinalText = "";
+let micPermissionVerified = false;
+let micStopRequested = false;
 
 const STARTER_PROMPT = "";
 const OPENING_MESSAGE =
@@ -1986,6 +1990,22 @@ function getSpeechVoice() {
   return /^[a-z0-9_-]{2,40}$/.test(voice) ? voice : "shimmer";
 }
 
+function shouldAutoDowngradeHighVoice(errorMessage) {
+  const text = String(errorMessage || "").toLowerCase();
+  if (!text) return false;
+  return (
+    text.includes("openai_api_key") ||
+    text.includes("incorrect api key") ||
+    text.includes("invalid_api_key") ||
+    text.includes("quota") ||
+    text.includes("billing") ||
+    text.includes("model") ||
+    text.includes("http 401") ||
+    text.includes("http 403") ||
+    text.includes("http 429")
+  );
+}
+
 function getSessionPace() {
   const raw = String(sessionPaceEl?.value || state.sessionPace || "standard")
     .trim()
@@ -2243,7 +2263,19 @@ async function speak(text) {
     }
   } catch (err) {
     if (token === speakToken && speechMode === "high") {
-      setStatus("High-fidelity voice unavailable, using browser voice.");
+      const detail = String(err?.message || "").trim();
+      const shortDetail =
+        detail.length > 120 ? `${detail.slice(0, 117)}...` : detail;
+      if (shouldAutoDowngradeHighVoice(detail)) {
+        state.voiceQuality = "medium";
+        if (voiceQualityEl) voiceQualityEl.value = "medium";
+        persistSpeechSettings();
+      }
+      setStatus(
+        shortDetail
+          ? `High-fidelity voice unavailable (${shortDetail}). Using browser voice.`
+          : "High-fidelity voice unavailable, using browser voice.",
+      );
       try {
         await speakWithBrowser(spoken, token, "medium");
       } catch (fallbackErr) {
@@ -2454,6 +2486,12 @@ function showSignedOutUI({ showSplash = true } = {}) {
   state.nudges = [];
   stopSpeaking();
   state.listening = false;
+  micStopRequested = false;
+  speechRecognitionBaseText = "";
+  speechRecognitionFinalText = "";
+  if (micBtn) {
+    micBtn.textContent = "Start Mic";
+  }
   clearMessages();
   inputEl.value = "";
   if (meetingNotesInputEl) meetingNotesInputEl.value = "";
@@ -2634,57 +2672,192 @@ async function initiateCoachConversation() {
   }
 }
 
+function mapSpeechRecognitionError(code) {
+  const raw = String(code || "").trim().toLowerCase();
+  if (!raw) return "Mic error";
+  if (raw === "not-allowed" || raw === "service-not-allowed") {
+    return "Microphone permission blocked. Allow microphone access in browser/site settings.";
+  }
+  if (raw === "no-speech") {
+    return "No speech detected. Try again and speak clearly after pressing Start Mic.";
+  }
+  if (raw === "audio-capture") {
+    return "No microphone input detected. Check your mic device selection.";
+  }
+  if (raw === "network") {
+    return "Speech recognition network issue. Check your connection and try again.";
+  }
+  if (raw === "aborted") {
+    return "Mic capture stopped.";
+  }
+  return `Mic error: ${raw}`;
+}
+
+async function ensureMicrophonePermission() {
+  if (micPermissionVerified) return { ok: true };
+  const mediaDevices = navigator.mediaDevices;
+  if (!mediaDevices || typeof mediaDevices.getUserMedia !== "function") {
+    return { ok: true };
+  }
+
+  try {
+    if (navigator.permissions && typeof navigator.permissions.query === "function") {
+      const result = await navigator.permissions
+        .query({ name: "microphone" })
+        .catch(() => null);
+      if (result && result.state === "denied") {
+        return {
+          ok: false,
+          message:
+            "Microphone permission is denied in browser settings. Please allow mic access for this site.",
+        };
+      }
+    }
+
+    const stream = await mediaDevices.getUserMedia({ audio: true });
+    for (const track of stream.getTracks()) {
+      track.stop();
+    }
+    micPermissionVerified = true;
+    return { ok: true };
+  } catch (err) {
+    const name = String(err?.name || "").trim();
+    if (name === "NotAllowedError" || name === "SecurityError") {
+      return {
+        ok: false,
+        message:
+          "Microphone permission blocked. Please allow microphone access, then try again.",
+      };
+    }
+    if (name === "NotFoundError") {
+      return {
+        ok: false,
+        message: "No microphone found. Connect a microphone and try again.",
+      };
+    }
+    if (name === "NotReadableError") {
+      return {
+        ok: false,
+        message: "Microphone is in use by another app. Close other apps using the mic and retry.",
+      };
+    }
+    return {
+      ok: false,
+      message: `Microphone setup failed: ${err?.message || "Unknown error"}`,
+    };
+  }
+}
+
 function initSpeechRecognition() {
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
     micBtn.disabled = true;
-    setStatus("Mic not supported in this browser");
+    micBtn.title = "Speech recognition is not supported in this browser.";
+    setStatus("Mic unavailable in this browser. Use Chrome/Edge/Safari.");
     return;
   }
 
   const recognition = new SpeechRecognition();
   recognition.lang = "en-US";
-  recognition.continuous = false;
-  recognition.interimResults = false;
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
 
   recognition.onstart = () => {
     state.listening = true;
+    micStopRequested = false;
+    speechRecognitionBaseText = String(inputEl?.value || "").trim();
+    speechRecognitionFinalText = "";
     micBtn.textContent = "Stop Mic";
-    setStatus("Listening...");
+    setStatus("Listening... speak now.");
     refreshCoachVisualState();
   };
 
   recognition.onresult = (event) => {
-    const text = event.results[0][0].transcript;
-    inputEl.value = inputEl.value ? `${inputEl.value} ${text}` : text;
+    let interim = "";
+    for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      const result = event.results[i];
+      const transcript = String(result?.[0]?.transcript || "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!transcript) continue;
+      if (result.isFinal) {
+        speechRecognitionFinalText = speechRecognitionFinalText
+          ? `${speechRecognitionFinalText} ${transcript}`
+          : transcript;
+      } else {
+        interim = interim ? `${interim} ${transcript}` : transcript;
+      }
+    }
+
+    const pieces = [
+      speechRecognitionBaseText,
+      speechRecognitionFinalText,
+      interim,
+    ].filter(Boolean);
+    inputEl.value = pieces.join(" ").replace(/\s+/g, " ").trim();
+    persistDraft();
     inputEl.focus();
   };
 
   recognition.onend = () => {
     state.listening = false;
     micBtn.textContent = "Start Mic";
-    syncAccessState();
+    if (!micStopRequested && !speechRecognitionFinalText) {
+      setStatus(
+        "Mic stopped with no transcript. Check microphone permission and speak after pressing Start Mic.",
+      );
+    } else if (canUseCoach()) {
+      setStatus("Ready");
+    }
+    speechRecognitionBaseText = "";
+    speechRecognitionFinalText = "";
+    micStopRequested = false;
     refreshCoachVisualState();
   };
 
-  recognition.onerror = () => {
+  recognition.onerror = (event) => {
     state.listening = false;
     micBtn.textContent = "Start Mic";
-    setStatus("Mic error");
+    const errorCode = String(event?.error || "");
+    if (
+      errorCode === "not-allowed" ||
+      errorCode === "service-not-allowed"
+    ) {
+      micPermissionVerified = false;
+    }
+    setStatus(mapSpeechRecognitionError(errorCode));
     refreshCoachVisualState();
+  };
+
+  recognition.onnomatch = () => {
+    setStatus("Could not recognize speech. Try again with clearer audio.");
   };
 
   state.recognition = recognition;
 }
 
-function toggleMic() {
+async function toggleMic() {
   if (!canUseCoach() || !state.recognition) return;
   if (state.listening) {
+    micStopRequested = true;
     state.recognition.stop();
     return;
   }
-  state.recognition.start();
+
+  setStatus("Checking microphone...");
+  const permission = await ensureMicrophonePermission();
+  if (!permission.ok) {
+    setStatus(permission.message || "Microphone permission check failed.");
+    return;
+  }
+
+  try {
+    state.recognition.start();
+  } catch (err) {
+    setStatus(`Mic start failed: ${err?.message || "Unknown error"}`);
+  }
 }
 
 async function checkSession() {
