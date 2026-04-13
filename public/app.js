@@ -6,6 +6,7 @@ const micBtn = document.getElementById("micBtn");
 const stopSpeakBtn = document.getElementById("stopSpeakBtn");
 const resetBtn = document.getElementById("resetBtn");
 const autoSpeakEl = document.getElementById("autoSpeak");
+const autoSendVoiceEl = document.getElementById("autoSendVoice");
 const statusEl = document.getElementById("status");
 const coachVisualEl = document.getElementById("coachVisual");
 const coachVisualStatusEl = document.getElementById("coachVisualStatus");
@@ -204,9 +205,10 @@ const state = {
   listening: false,
   speaking: false,
   recognition: null,
+  autoSendVoice: true,
   user: null,
   view: "chat",
-  voiceQuality: "high",
+  voiceQuality: "medium",
   voiceName: "shimmer",
   sessionPace: "standard",
   nudges: [],
@@ -236,11 +238,15 @@ let speechRecognitionBaseText = "";
 let speechRecognitionFinalText = "";
 let micPermissionVerified = false;
 let micStopRequested = false;
+let pendingVoiceAutoSend = false;
 
 const STARTER_PROMPT = "";
 const OPENING_MESSAGE =
   "Hi, I’m Consilium. What leadership conversation or decision would you like to work through first?";
 const DRAFT_STORAGE_KEY = "consilium.messageDraft";
+const MAX_CONTEXT_MESSAGES = 24;
+const VOICE_CONTEXT_MESSAGES = 12;
+const AUTO_SEND_MIN_CHARS = 2;
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -1970,13 +1976,13 @@ function pickPreferredVoice() {
 }
 
 function getVoiceQuality() {
-  const raw = String(voiceQualityEl?.value || state.voiceQuality || "high")
+  const raw = String(voiceQualityEl?.value || state.voiceQuality || "medium")
     .trim()
     .toLowerCase();
   if (raw === "low" || raw === "medium" || raw === "high") {
     return raw;
   }
-  return "high";
+  return "medium";
 }
 
 function getSpeechMode() {
@@ -2013,6 +2019,10 @@ function getSessionPace() {
   return raw === "busy" ? "busy" : "standard";
 }
 
+function getAutoSendVoice() {
+  return Boolean(autoSendVoiceEl?.checked);
+}
+
 function persistDraft() {
   try {
     localStorage.setItem(DRAFT_STORAGE_KEY, String(inputEl?.value || ""));
@@ -2045,6 +2055,7 @@ function persistSpeechSettings() {
     localStorage.setItem("consilium.voiceQuality", getVoiceQuality());
     localStorage.setItem("consilium.voiceName", getSpeechVoice());
     localStorage.setItem("consilium.sessionPace", getSessionPace());
+    localStorage.setItem("consilium.autoSendVoice", getAutoSendVoice() ? "1" : "0");
   } catch {
     // localStorage may be unavailable in privacy mode.
   }
@@ -2056,6 +2067,7 @@ function loadSpeechSettings() {
     const mode = localStorage.getItem("consilium.voiceMode");
     const voiceName = localStorage.getItem("consilium.voiceName");
     const pace = localStorage.getItem("consilium.sessionPace");
+    const autoSendVoice = localStorage.getItem("consilium.autoSendVoice");
     if (voiceQualityEl) {
       let nextQuality = "";
       if (quality) {
@@ -2083,12 +2095,16 @@ function loadSpeechSettings() {
     if (pace && sessionPaceEl) {
       sessionPaceEl.value = pace.toLowerCase() === "busy" ? "busy" : "standard";
     }
+    if (autoSendVoiceEl && autoSendVoice) {
+      autoSendVoiceEl.checked = autoSendVoice !== "0";
+    }
   } catch {
     // localStorage may be unavailable in privacy mode.
   }
   state.voiceQuality = getVoiceQuality();
   state.voiceName = getSpeechVoice();
   state.sessionPace = getSessionPace();
+  state.autoSendVoice = getAutoSendVoice();
 }
 
 async function requestHighFidelityAudioChunk(text, token) {
@@ -2107,7 +2123,7 @@ async function requestHighFidelityAudioChunk(text, token) {
       text,
       voice: state.voiceName,
       format: "mp3",
-      speed: 1,
+      speed: 1.03,
       instructions:
         "Natural, warm, human executive-coach voice with measured pacing and clear articulation.",
     }),
@@ -2165,7 +2181,10 @@ async function playAudioBlob(blob, token) {
 }
 
 async function speakWithHighFidelity(text, token) {
-  const chunks = splitSpeechChunks(text, 320);
+  const normalized = String(text || "").trim();
+  if (!normalized) return;
+  const chunks =
+    normalized.length <= 3200 ? [normalized] : splitSpeechChunks(normalized, 1400);
   for (const chunk of chunks) {
     if (token !== speakToken) return;
     const audioBlob = await requestHighFidelityAudioChunk(chunk, token);
@@ -2484,6 +2503,7 @@ function showSignedOutUI({ showSplash = true } = {}) {
   state.user = null;
   state.view = "chat";
   state.nudges = [];
+  pendingVoiceAutoSend = false;
   stopSpeaking();
   state.listening = false;
   micStopRequested = false;
@@ -2581,8 +2601,13 @@ async function sendMessage() {
   const content = inputEl.value.trim();
   if (!content) return;
 
+  const voiceTurnAuto = pendingVoiceAutoSend;
+  pendingVoiceAutoSend = false;
+
   stopSpeaking();
-  state.sessionPace = getSessionPace();
+  const selectedPace = getSessionPace();
+  state.sessionPace =
+    voiceTurnAuto && selectedPace === "standard" ? "busy" : selectedPace;
   renderMessage("user", content, true);
   inputEl.value = "";
   clearDraft();
@@ -2594,10 +2619,13 @@ async function sendMessage() {
   try {
     const meetingNotes = meetingNotesInputEl ? meetingNotesInputEl.value.trim() : "";
     const selfReport = selfReportInputEl ? selfReportInputEl.value.trim() : "";
+    const contextLimit = voiceTurnAuto
+      ? VOICE_CONTEXT_MESSAGES
+      : MAX_CONTEXT_MESSAGES;
     const payload = await apiRequest("/api/chat", {
       method: "POST",
       body: JSON.stringify({
-        messages: state.messages,
+        messages: state.messages.slice(-contextLimit),
         meetingNotes,
         selfReport,
         sessionPace: state.sessionPace,
@@ -2650,7 +2678,7 @@ async function initiateCoachConversation() {
     const payload = await apiRequest("/api/chat", {
       method: "POST",
       body: JSON.stringify({
-        messages: state.messages,
+        messages: state.messages.slice(-MAX_CONTEXT_MESSAGES),
         meetingNotes,
         selfReport,
         initiate: true,
@@ -2760,7 +2788,7 @@ function initSpeechRecognition() {
 
   const recognition = new SpeechRecognition();
   recognition.lang = "en-US";
-  recognition.continuous = true;
+  recognition.continuous = false;
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
@@ -2804,10 +2832,25 @@ function initSpeechRecognition() {
   recognition.onend = () => {
     state.listening = false;
     micBtn.textContent = "Start Mic";
-    if (!micStopRequested && !speechRecognitionFinalText) {
+    const transcript = String(inputEl?.value || "").trim();
+    const hasTranscript =
+      transcript.length >= AUTO_SEND_MIN_CHARS || Boolean(speechRecognitionFinalText);
+    const autoSendEnabled = getAutoSendVoice();
+    const shouldAutoSend =
+      autoSendEnabled &&
+      hasTranscript &&
+      canUseCoach() &&
+      !sendBtn.disabled &&
+      !coachStartBtn.disabled;
+
+    if (shouldAutoSend) {
+      setStatus("Heard you. Thinking...");
+    } else if (!hasTranscript) {
       setStatus(
         "Mic stopped with no transcript. Check microphone permission and speak after pressing Start Mic.",
       );
+    } else if (!autoSendEnabled && hasTranscript && canUseCoach()) {
+      setStatus("Transcript ready. Press Enter to send.");
     } else if (canUseCoach()) {
       setStatus("Ready");
     }
@@ -2815,6 +2858,10 @@ function initSpeechRecognition() {
     speechRecognitionFinalText = "";
     micStopRequested = false;
     refreshCoachVisualState();
+    if (shouldAutoSend) {
+      pendingVoiceAutoSend = true;
+      void sendMessage();
+    }
   };
 
   recognition.onerror = (event) => {
@@ -2833,6 +2880,17 @@ function initSpeechRecognition() {
 
   recognition.onnomatch = () => {
     setStatus("Could not recognize speech. Try again with clearer audio.");
+  };
+
+  recognition.onspeechend = () => {
+    if (state.listening && !micStopRequested) {
+      setStatus("Got it. Processing...");
+      try {
+        recognition.stop();
+      } catch {
+        // Ignore occasional stop races from browser speech APIs.
+      }
+    }
   };
 
   state.recognition = recognition;
@@ -3095,6 +3153,12 @@ if (speechVoiceEl) {
 if (sessionPaceEl) {
   sessionPaceEl.addEventListener("change", () => {
     state.sessionPace = getSessionPace();
+    persistSpeechSettings();
+  });
+}
+if (autoSendVoiceEl) {
+  autoSendVoiceEl.addEventListener("change", () => {
+    state.autoSendVoice = getAutoSendVoice();
     persistSpeechSettings();
   });
 }
