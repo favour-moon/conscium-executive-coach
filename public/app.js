@@ -199,6 +199,7 @@ const VOICE_NAME_HINTS = [
   "Daniel",
   "Alex",
 ];
+const OPENAI_VOICE_OPTIONS = ["shimmer", "nova", "alloy", "verse", "sage"];
 
 const state = {
   messages: [],
@@ -1947,6 +1948,120 @@ function splitSpeechChunks(text, maxChars = 220) {
   return chunks.length ? chunks : [text];
 }
 
+function normalizeSpeakerName(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseRolePlaySegments(text) {
+  const raw = String(text || "");
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (!lines.length) return [];
+
+  const segments = [];
+  for (const line of lines) {
+    const match = line.match(/^(?:[-*]\s*)?([A-Za-z][A-Za-z0-9 '&/.-]{1,32}):\s*(.+)$/);
+    if (!match) continue;
+    const speaker = normalizeSpeakerName(match[1]);
+    const content = String(match[2] || "").trim();
+    if (!speaker || !content) continue;
+    segments.push({ speaker, text: content });
+  }
+
+  const uniqueSpeakers = new Set(
+    segments.map((segment) => normalizeSpeakerName(segment.speaker).toLowerCase()),
+  );
+  if (segments.length < 2 || uniqueSpeakers.size < 2) {
+    // Fallback for single-line role-play text containing multiple speaker labels.
+    const inlineMatches = [];
+    const regex = /([A-Za-z][A-Za-z0-9 '&/.-]{1,32}):\s*/g;
+    let match = regex.exec(raw);
+    while (match) {
+      const speaker = normalizeSpeakerName(match[1]);
+      const contentStart = regex.lastIndex;
+      const nextMatch = regex.exec(raw);
+      const contentEnd = nextMatch ? nextMatch.index : raw.length;
+      const content = raw.slice(contentStart, contentEnd).trim();
+      if (speaker && content) {
+        inlineMatches.push({ speaker, text: content });
+      }
+      if (!nextMatch) break;
+      regex.lastIndex = nextMatch.index;
+      match = regex.exec(raw);
+    }
+    const inlineSpeakers = new Set(
+      inlineMatches.map((item) => normalizeSpeakerName(item.speaker).toLowerCase()),
+    );
+    if (inlineMatches.length >= 2 && inlineSpeakers.size >= 2) {
+      return inlineMatches;
+    }
+    return [];
+  }
+  return segments;
+}
+
+function isCoachSpeaker(speaker) {
+  const key = normalizeSpeakerName(speaker).toLowerCase();
+  if (!key) return true;
+  return (
+    key.includes("consilium") ||
+    key.includes("coach") ||
+    key.includes("facilitator") ||
+    key.includes("narrator") ||
+    key === "assistant"
+  );
+}
+
+function buildOpenAIVoiceAssignments(segments, primaryVoice) {
+  const primary = String(primaryVoice || "shimmer").toLowerCase();
+  const pool = OPENAI_VOICE_OPTIONS.filter((voice) => voice !== primary);
+  const assignments = new Map();
+  let idx = 0;
+
+  for (const segment of segments) {
+    const key = normalizeSpeakerName(segment.speaker);
+    if (!key || assignments.has(key)) continue;
+    if (isCoachSpeaker(key)) {
+      assignments.set(key, primary);
+      continue;
+    }
+    const fallbackVoice = OPENAI_VOICE_OPTIONS[0] || primary;
+    const assigned = pool.length ? pool[idx % pool.length] : fallbackVoice;
+    assignments.set(key, assigned);
+    idx += 1;
+  }
+  return assignments;
+}
+
+function buildBrowserVoiceAssignments(segments, coachVoice) {
+  const englishVoices = (window.speechSynthesis?.getVoices?.() || []).filter((voice) =>
+    String(voice.lang || "")
+      .toLowerCase()
+      .startsWith("en"),
+  );
+  const pool = englishVoices.filter((voice) => !coachVoice || voice.voiceURI !== coachVoice.voiceURI);
+  const assignments = new Map();
+  let idx = 0;
+
+  for (const segment of segments) {
+    const key = normalizeSpeakerName(segment.speaker);
+    if (!key || assignments.has(key)) continue;
+    if (isCoachSpeaker(key)) {
+      assignments.set(key, coachVoice || null);
+      continue;
+    }
+    const assigned = pool.length ? pool[idx % pool.length] : coachVoice || null;
+    assignments.set(key, assigned);
+    idx += 1;
+  }
+
+  return assignments;
+}
+
 function pickPreferredVoice() {
   if (!("speechSynthesis" in window)) return null;
   const voices = window.speechSynthesis.getVoices();
@@ -2146,7 +2261,7 @@ function loadSpeechSettings() {
   state.autoSendVoice = getAutoSendVoice();
 }
 
-async function requestHighFidelityAudioChunk(text, token) {
+async function requestHighFidelityAudioChunk(text, token, voiceOverride = "") {
   if (!text) return null;
   if (!speakAbortController || speakAbortController.signal.aborted) {
     speakAbortController = new AbortController();
@@ -2160,7 +2275,7 @@ async function requestHighFidelityAudioChunk(text, token) {
     signal: speakAbortController.signal,
     body: JSON.stringify({
       text,
-      voice: state.voiceName,
+      voice: String(voiceOverride || state.voiceName || "shimmer").toLowerCase(),
       format: "mp3",
       speed: 1.03,
       instructions:
@@ -2236,11 +2351,45 @@ async function playAudioBlob(blob, token) {
 async function speakWithHighFidelity(text, token) {
   const normalized = String(text || "").trim();
   if (!normalized) return;
+
+  const rolePlaySegments = parseRolePlaySegments(normalized);
+  if (rolePlaySegments.length) {
+    const voiceAssignments = buildOpenAIVoiceAssignments(
+      rolePlaySegments,
+      getSpeechVoice(),
+    );
+    for (const segment of rolePlaySegments) {
+      if (token !== speakToken) return;
+      const segmentVoice =
+        voiceAssignments.get(normalizeSpeakerName(segment.speaker)) ||
+        getSpeechVoice();
+      const chunks =
+        segment.text.length <= 2000
+          ? [segment.text]
+          : splitSpeechChunks(segment.text, 900);
+      for (const chunk of chunks) {
+        if (token !== speakToken) return;
+        const audioBlob = await requestHighFidelityAudioChunk(
+          chunk,
+          token,
+          segmentVoice,
+        );
+        if (!audioBlob || token !== speakToken) return;
+        await playAudioBlob(audioBlob, token);
+      }
+    }
+    return;
+  }
+
   const chunks =
     normalized.length <= 3200 ? [normalized] : splitSpeechChunks(normalized, 1400);
   for (const chunk of chunks) {
     if (token !== speakToken) return;
-    const audioBlob = await requestHighFidelityAudioChunk(chunk, token);
+    const audioBlob = await requestHighFidelityAudioChunk(
+      chunk,
+      token,
+      getSpeechVoice(),
+    );
     if (!audioBlob || token !== speakToken) return;
     await playAudioBlob(audioBlob, token);
   }
@@ -2250,8 +2399,8 @@ function speakWithBrowser(text, token, quality = "medium") {
   if (!("speechSynthesis" in window)) {
     return Promise.reject(new Error("Browser speech synthesis is unavailable."));
   }
-  const voice = pickPreferredVoice();
-  const chunks = splitSpeechChunks(text, 210);
+  const coachVoice = pickPreferredVoice();
+  const rolePlaySegments = parseRolePlaySegments(text);
   const normalizedQuality =
     quality === "low" || quality === "medium" || quality === "high"
       ? quality
@@ -2271,6 +2420,25 @@ function speakWithBrowser(text, token, quality = "medium") {
     medium: { min: 0.14, max: 0.6, intervalMs: 102, peak: 0.78 },
     high: { min: 0.18, max: 0.74, intervalMs: 86, peak: 0.92 },
   };
+
+  const browserVoiceAssignments = rolePlaySegments.length
+    ? buildBrowserVoiceAssignments(rolePlaySegments, coachVoice)
+    : new Map();
+  const speechSegments = rolePlaySegments.length
+    ? rolePlaySegments.flatMap((segment) => {
+        const chunks = splitSpeechChunks(segment.text, 180);
+        return chunks.map((chunk) => ({
+          speaker: segment.speaker,
+          text: chunk,
+          isRolePlay: true,
+        }));
+      })
+    : splitSpeechChunks(text, 210).map((chunk) => ({
+        speaker: "Consilium",
+        text: chunk,
+        isRolePlay: false,
+      }));
+
   let idx = 0;
 
   return new Promise((resolve, reject) => {
@@ -2279,16 +2447,31 @@ function speakWithBrowser(text, token, quality = "medium") {
         resolve();
         return;
       }
-      if (idx >= chunks.length) {
+      if (idx >= speechSegments.length) {
         stopLipSync();
         resolve();
         return;
       }
-      const utterance = new SpeechSynthesisUtterance(chunks[idx]);
+      const segment = speechSegments[idx];
       idx += 1;
-      if (voice) utterance.voice = voice;
-      utterance.rate = rateMap[normalizedQuality];
-      utterance.pitch = pitchMap[normalizedQuality];
+      const utterance = new SpeechSynthesisUtterance(segment.text);
+
+      const speakerKey = normalizeSpeakerName(segment.speaker);
+      const isCoach = isCoachSpeaker(speakerKey);
+      const speakerVoice =
+        browserVoiceAssignments.get(speakerKey) || coachVoice || null;
+      if (speakerVoice) utterance.voice = speakerVoice;
+
+      const baseRate = rateMap[normalizedQuality];
+      const basePitch = pitchMap[normalizedQuality];
+      if (segment.isRolePlay && !isCoach) {
+        utterance.rate = Math.max(0.84, Math.min(1.12, baseRate * 0.98));
+        utterance.pitch = Math.max(0.86, Math.min(1.24, basePitch * 1.06));
+      } else {
+        utterance.rate = baseRate;
+        utterance.pitch = basePitch;
+      }
+
       const motion = motionMap[normalizedQuality];
       utterance.onstart = () => {
         startFallbackLipMotion(motion);

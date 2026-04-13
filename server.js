@@ -325,11 +325,18 @@ Default interaction style:
 - Use GROW and Kantor moves internally, but do not force framework labels every turn.
 - Do not output stage labels like "Goal / Reality / Options / Will".
 - Start with the user's concrete goal for the conversation, then explore reality, options, and commitment through normal dialogue.
+- Be empathic in every turn: acknowledge pressure, emotion, or uncertainty before challenge.
+- Maintain dignity and psychological safety while still being candid and accountable.
 
 Coaching priorities:
 - Difficult conversations, decision speed, delegation, and system-level thinking.
 - Ground recommendations in the user's real constraints and timelines.
 - If urgency is high, be more direct; otherwise use collaborative/facilitative questioning.
+
+Role-play behavior:
+- If the user asks for role-play/simulation, respond as short dialogue lines with explicit speaker labels.
+- Use labels like "Consilium:" and the stakeholder label (for example "Stakeholder:" or "Direct Report:").
+- Alternate turns naturally and keep each line brief and speakable.
 
 Governance rules:
 - Explicitly respect consent boundaries.
@@ -659,6 +666,270 @@ function inferUseCaseFromText(value, fallback = "General coaching") {
     return "Strategic thinking";
   }
   return fallback;
+}
+
+function normalizeEvidenceText(...parts) {
+  return parts
+    .map((part) => sanitizeText(part, 5000).toLowerCase())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function countKeywordHits(text, keywords) {
+  if (!text) return 0;
+  let hits = 0;
+  for (const keyword of keywords) {
+    const token = String(keyword || "").trim().toLowerCase();
+    if (!token) continue;
+    if (text.includes(token)) hits += 1;
+  }
+  return hits;
+}
+
+function signalFromKeywords(text, positiveKeywords, negativeKeywords) {
+  const positive = countKeywordHits(text, positiveKeywords);
+  const negative = countKeywordHits(text, negativeKeywords);
+  const diff = positive - negative;
+  if (diff >= 3) return 2;
+  if (diff >= 1) return 1;
+  if (diff <= -3) return -2;
+  if (diff <= -1) return -1;
+  return 0;
+}
+
+function applyDeltaToScores(baseScores, deltas, keys, defaultScore = 5) {
+  const out = {};
+  for (const key of keys) {
+    const base = clampScore10(baseScores?.[key], defaultScore);
+    const rawDelta = Number.parseInt(String(deltas?.[key] ?? 0), 10);
+    const delta = Number.isFinite(rawDelta)
+      ? Math.max(-2, Math.min(2, rawDelta))
+      : 0;
+    out[key] = clampScore10(base + delta, base);
+  }
+  return out;
+}
+
+function inferMbtiFromBigFive(bigFive) {
+  const e = Number(bigFive?.extraversion || 5) >= 6 ? "E" : "I";
+  const n = Number(bigFive?.openness || 5) >= 6 ? "N" : "S";
+  const tf = Number(bigFive?.agreeableness || 5) >= 5 ? "F" : "T";
+  const jp = Number(bigFive?.conscientiousness || 5) >= 6 ? "J" : "P";
+  return `${e}${n}${tf}${jp}`;
+}
+
+function inferDiscFromBigFive(bigFive) {
+  const ext = Number(bigFive?.extraversion || 5);
+  const agr = Number(bigFive?.agreeableness || 5);
+  const con = Number(bigFive?.conscientiousness || 5);
+  if (ext >= 6 && agr <= 5) return "D";
+  if (ext >= 6 && agr > 5) return "I";
+  if (con >= 6 && ext <= 5) return "C";
+  return "S";
+}
+
+function mergeUniqueTextLists(primary, secondary, maxItems = 12, maxLen = 120) {
+  const out = [];
+  const seen = new Set();
+  const add = (items) => {
+    for (const item of items) {
+      const text = sanitizeText(item, maxLen);
+      if (!text) continue;
+      const key = text.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(text);
+      if (out.length >= maxItems) return;
+    }
+  };
+  add(Array.isArray(primary) ? primary : []);
+  if (out.length < maxItems) {
+    add(Array.isArray(secondary) ? secondary : []);
+  }
+  return out.slice(0, maxItems);
+}
+
+function deriveHeuristicInsights({
+  userMessage,
+  assistantReply,
+  meetingNotes,
+  selfReport,
+  beforeCategoryScores,
+  beforeBigFive,
+}) {
+  const text = normalizeEvidenceText(
+    userMessage,
+    assistantReply,
+    meetingNotes,
+    selfReport,
+  );
+
+  const decisionSignal = signalFromKeywords(
+    text,
+    [
+      "decide",
+      "decision",
+      "commit",
+      "next step",
+      "deadline",
+      "action",
+      "by next",
+      "by monday",
+      "by friday",
+      "tomorrow",
+    ],
+    ["stuck", "uncertain", "unsure", "delay", "avoid", "indecis", "procrast"],
+  );
+  const delegationSignal = signalFromKeywords(
+    text,
+    [
+      "delegate",
+      "delegation",
+      "empower",
+      "ownership",
+      "handover",
+      "entrust",
+      "assign",
+      "direct report",
+    ],
+    [
+      "micromanage",
+      "do it myself",
+      "take over",
+      "control everything",
+      "cannot trust",
+    ],
+  );
+  const conversationSignal = signalFromKeywords(
+    text,
+    [
+      "feedback",
+      "conversation",
+      "listen",
+      "clarify",
+      "role-play",
+      "role play",
+      "perspective",
+      "calm",
+      "specific",
+      "underperformance",
+      "stakeholder",
+    ],
+    ["defensive", "blame", "argument", "escalat", "vague", "unclear"],
+  );
+  const adaptabilitySignal = signalFromKeywords(
+    text,
+    [
+      "reflect",
+      "learn",
+      "adjust",
+      "adapt",
+      "experiment",
+      "iterate",
+      "improve",
+      "different approach",
+    ],
+    ["rigid", "stubborn", "same approach", "fixed mindset", "resist change"],
+  );
+  const stressSignal = signalFromKeywords(
+    text,
+    ["anxious", "worried", "overwhelmed", "nervous", "fear", "pressure", "stressed"],
+    ["calm", "confident", "steady", "focused"],
+  );
+  const empathySignal = signalFromKeywords(
+    text,
+    ["perspective", "empathy", "support", "listen", "fair", "trust"],
+    ["blame", "dismiss", "attack"],
+  );
+
+  const categoryDelta = {
+    decisionSpeed: decisionSignal,
+    delegation: delegationSignal,
+    conversationQuality: conversationSignal,
+    adaptability: adaptabilitySignal,
+  };
+  const categoryScores = applyDeltaToScores(
+    beforeCategoryScores,
+    categoryDelta,
+    CATEGORY_KEYS,
+    5,
+  );
+
+  const bigFiveDelta = {
+    openness: adaptabilitySignal,
+    conscientiousness: decisionSignal > 0 ? 1 : decisionSignal < 0 ? -1 : 0,
+    extraversion: conversationSignal > 0 ? 1 : conversationSignal < 0 ? -1 : 0,
+    agreeableness: empathySignal,
+    neuroticism: stressSignal,
+  };
+  const bigFive = applyDeltaToScores(beforeBigFive, bigFiveDelta, BIG_FIVE_KEYS, 5);
+
+  const traits = [];
+  const strengths = [];
+  const developmentAreas = [];
+
+  if (decisionSignal > 0) {
+    traits.push("action-oriented");
+    strengths.push("decision commitment under pressure");
+  }
+  if (delegationSignal > 0) {
+    traits.push("trust-building delegator");
+    strengths.push("clear ownership delegation");
+  }
+  if (conversationSignal > 0) {
+    traits.push("structured communicator");
+    strengths.push("constructive difficult-conversation framing");
+  }
+  if (adaptabilitySignal > 0) {
+    traits.push("learning-oriented");
+    strengths.push("adaptive problem solving");
+  }
+
+  if (decisionSignal < 0) {
+    developmentAreas.push("faster commitment in ambiguity");
+  }
+  if (delegationSignal < 0) {
+    developmentAreas.push("deeper delegation and empowerment");
+  }
+  if (conversationSignal < 0) {
+    developmentAreas.push("clearer behavioral feedback delivery");
+  }
+  if (adaptabilitySignal < 0) {
+    developmentAreas.push("adaptive response in changing context");
+  }
+
+  const totalDelta = Object.values(categoryDelta).reduce(
+    (sum, value) => sum + Number(value || 0),
+    0,
+  );
+  let progress = "stable";
+  if (totalDelta >= 2) progress = "improved";
+  else if (totalDelta <= -2) progress = "declined";
+  else if (totalDelta !== 0) progress = "mixed";
+
+  const hasSignal =
+    Object.values(categoryDelta).some((value) => value !== 0) ||
+    Object.values(bigFiveDelta).some((value) => value !== 0) ||
+    traits.length > 0 ||
+    strengths.length > 0 ||
+    developmentAreas.length > 0;
+
+  return {
+    hasSignal,
+    categoryScores,
+    personality: {
+      bigFive,
+      mbti: inferMbtiFromBigFive(bigFive),
+      disc: inferDiscFromBigFive(bigFive),
+    },
+    traits,
+    strengths,
+    developmentAreas,
+    progress,
+    summary: hasSignal
+      ? "Profile updated from interaction evidence and behavior signals."
+      : "Interaction captured; evidence signal remained neutral.",
+  };
 }
 
 function normalizeTtsVoice(value, fallback = DEFAULT_TTS_VOICE) {
@@ -1039,6 +1310,71 @@ function computeProfileMetrics(profile) {
     successfulInterventions: successful,
     interventionSuccessRate: rate,
   };
+}
+
+function profileNeedsSignalBackfill(profile) {
+  if (!profile || typeof profile !== "object") return false;
+  const categoryDefaults = CATEGORY_KEYS.every(
+    (key) => Number(profile.categoryScores?.[key]) === DEFAULT_CATEGORY_SCORES[key],
+  );
+  const bigFiveDefaults = BIG_FIVE_KEYS.every(
+    (key) => Number(profile.personality?.bigFive?.[key]) === DEFAULT_BIG_FIVE[key],
+  );
+  const noSignals =
+    (!Array.isArray(profile.traits) || profile.traits.length === 0) &&
+    (!Array.isArray(profile.strengths) || profile.strengths.length === 0);
+  const hasHistory =
+    Array.isArray(profile.interactionLog) && profile.interactionLog.length > 0;
+  return hasHistory && (categoryDefaults || bigFiveDefaults || noSignals);
+}
+
+function backfillProfileSignals(profile) {
+  if (!profileNeedsSignalBackfill(profile)) {
+    return profile;
+  }
+
+  let categoryScores = { ...profile.categoryScores };
+  let bigFive = { ...(profile.personality?.bigFive || DEFAULT_BIG_FIVE) };
+  const inferredTraits = [];
+  const inferredStrengths = [];
+  const inferredDevelopmentAreas = [];
+
+  for (const entry of profile.interactionLog.slice(-120)) {
+    const heuristic = deriveHeuristicInsights({
+      userMessage: entry?.userPrompt || entry?.summary || "",
+      assistantReply: entry?.coachResponse || "",
+      meetingNotes: entry?.meetingNotesSnippet || "",
+      selfReport: entry?.selfReportSnippet || "",
+      beforeCategoryScores: categoryScores,
+      beforeBigFive: bigFive,
+    });
+    categoryScores = heuristic.categoryScores;
+    bigFive = heuristic.personality.bigFive;
+    inferredTraits.push(...heuristic.traits);
+    inferredStrengths.push(...heuristic.strengths);
+    inferredDevelopmentAreas.push(...heuristic.developmentAreas);
+  }
+
+  const next = {
+    ...profile,
+    categoryScores,
+    personality: {
+      ...(profile.personality || {}),
+      bigFive,
+      mbti: inferMbtiFromBigFive(bigFive),
+      disc: inferDiscFromBigFive(bigFive),
+    },
+    traits: mergeUniqueTextLists(profile.traits, inferredTraits, 12, 80),
+    strengths: mergeUniqueTextLists(profile.strengths, inferredStrengths, 12, 120),
+    developmentAreas: mergeUniqueTextLists(
+      profile.developmentAreas,
+      inferredDevelopmentAreas,
+      12,
+      120,
+    ),
+  };
+  next.metrics = computeProfileMetrics(next);
+  return next;
 }
 
 function normalizeCoachingProfile(profile) {
@@ -1646,7 +1982,9 @@ function normalizeUsers() {
       changed = true;
     }
 
-    const normalizedProfile = normalizeCoachingProfile(user.coachingProfile);
+    const normalizedProfile = backfillProfileSignals(
+      normalizeCoachingProfile(user.coachingProfile),
+    );
     if (
       JSON.stringify(user.coachingProfile || {}) !==
       JSON.stringify(normalizedProfile)
@@ -2952,6 +3290,7 @@ async function analyzeAndUpdateCoacheeProfile({
 }) {
   const profile = ensureUserCoachingProfile(user);
   const beforeScores = { ...profile.categoryScores };
+  const beforeBigFive = { ...(profile.personality?.bigFive || DEFAULT_BIG_FIVE) };
   const now = newIsoNow();
 
   const analyzerInput = {
@@ -2980,24 +3319,83 @@ async function analyzeAndUpdateCoacheeProfile({
   });
   const content = payload?.choices?.[0]?.message?.content || "{}";
   const analysis = extractJsonObject(content);
+  const heuristic = deriveHeuristicInsights({
+    userMessage,
+    assistantReply,
+    meetingNotes,
+    selfReport,
+    beforeCategoryScores: beforeScores,
+    beforeBigFive,
+  });
 
-  profile.traits = sanitizeArray(analysis.traits, 12, 80);
-  profile.strengths = sanitizeArray(analysis.strengths, 12, 120);
-  profile.developmentAreas = sanitizeArray(analysis.developmentAreas, 12, 120);
-  profile.personality = {
-    bigFive: normalizeScoreMap(
-      analysis?.personality?.bigFive,
-      BIG_FIVE_KEYS,
-      DEFAULT_BIG_FIVE,
-    ),
-    mbti: sanitizeText(analysis?.personality?.mbti || "Unknown", 10) || "Unknown",
-    disc: sanitizeText(analysis?.personality?.disc || "Unknown", 10) || "Unknown",
-  };
-  profile.categoryScores = normalizeScoreMap(
+  const analyzedTraits = sanitizeArray(analysis.traits, 12, 80);
+  const analyzedStrengths = sanitizeArray(analysis.strengths, 12, 120);
+  const analyzedDevelopmentAreas = sanitizeArray(analysis.developmentAreas, 12, 120);
+
+  profile.traits = mergeUniqueTextLists(analyzedTraits, heuristic.traits, 12, 80);
+  profile.strengths = mergeUniqueTextLists(
+    analyzedStrengths,
+    heuristic.strengths,
+    12,
+    120,
+  );
+  profile.developmentAreas = mergeUniqueTextLists(
+    analyzedDevelopmentAreas,
+    heuristic.developmentAreas,
+    12,
+    120,
+  );
+
+  const analyzedCategoryScores = normalizeScoreMap(
     analysis.categoryScores,
     CATEGORY_KEYS,
     beforeScores,
   );
+  const analyzerCategoryChanged = CATEGORY_KEYS.some(
+    (key) => analyzedCategoryScores[key] !== beforeScores[key],
+  );
+  profile.categoryScores =
+    analyzerCategoryChanged || !heuristic.hasSignal
+      ? analyzedCategoryScores
+      : heuristic.categoryScores;
+
+  const analyzerBigFive = normalizeScoreMap(
+    analysis?.personality?.bigFive,
+    BIG_FIVE_KEYS,
+    beforeBigFive,
+  );
+  const analyzerBigFiveChanged = BIG_FIVE_KEYS.some(
+    (key) => analyzerBigFive[key] !== beforeBigFive[key],
+  );
+  const rawBigFive = analysis?.personality?.bigFive;
+  const analyzerProvidedBigFive = BIG_FIVE_KEYS.some((key) =>
+    Number.isFinite(Number.parseFloat(rawBigFive?.[key])),
+  );
+  const analyzerMbti = sanitizeText(analysis?.personality?.mbti || "", 10);
+  const analyzerDisc = sanitizeText(analysis?.personality?.disc || "", 10);
+  const analyzerProvidedType =
+    (analyzerMbti && analyzerMbti.toLowerCase() !== "unknown") ||
+    (analyzerDisc && analyzerDisc.toLowerCase() !== "unknown");
+
+  const useAnalyzerPersonality =
+    analyzerBigFiveChanged || analyzerProvidedBigFive || analyzerProvidedType;
+  const personalityBigFive = useAnalyzerPersonality
+    ? analyzerBigFive
+    : heuristic.personality.bigFive;
+  const personalityMbti =
+    useAnalyzerPersonality && analyzerMbti
+      ? analyzerMbti
+      : heuristic.personality.mbti;
+  const personalityDisc =
+    useAnalyzerPersonality && analyzerDisc
+      ? analyzerDisc
+      : heuristic.personality.disc;
+  profile.personality = {
+    bigFive: personalityBigFive,
+    mbti: personalityMbti || "Unknown",
+    disc: personalityDisc || "Unknown",
+  };
+
   profile.interventions = mergeInterventions(
     profile.interventions,
     Array.isArray(analysis.interventions) ? analysis.interventions : [],
@@ -3009,14 +3407,23 @@ async function analyzeAndUpdateCoacheeProfile({
   }
 
   const assessment = analysis?.interactionAssessment || {};
+  const summary =
+    sanitizeText(assessment.summary, 320) ||
+    heuristic.summary ||
+    "Interaction captured and profile updated.";
+  const progress =
+    sanitizeText(assessment.progress, 20) ||
+    heuristic.progress ||
+    "stable";
+  const confidence =
+    sanitizeText(assessment.confidence, 20) ||
+    (heuristic.hasSignal ? "medium" : "low");
   profile.interactionLog.push({
     id: crypto.randomUUID(),
     timestamp: now,
-    summary:
-      sanitizeText(assessment.summary, 320) ||
-      "Interaction captured and profile updated.",
-    progress: sanitizeText(assessment.progress, 20) || "stable",
-    confidence: sanitizeText(assessment.confidence, 20) || "medium",
+    summary,
+    progress,
+    confidence,
     assessmentMode: "analyzer",
     sessionPace: normalizeSessionPace(sessionPace),
     useCase: inferUseCaseFromText(userMessage, "General coaching"),
@@ -3239,6 +3646,11 @@ async function handleChat(req, res) {
                   meetingNotes || "None"
                 }\n- Coachee self-report: ${selfReport || "None"}`
               : "Session evidence: no additional notes provided.",
+        },
+        {
+          role: "system",
+          content:
+            "Empathy requirement: briefly validate the user's lived context before recommendations. For role-play, format with explicit speaker labels so each persona can be voiced distinctly.",
         },
         ...recentMessages,
       ],
