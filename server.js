@@ -45,6 +45,7 @@ const HOST = (process.env.HOST || "0.0.0.0").trim();
 const PORT = Number(process.env.PORT || 8787);
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const TTS_MODEL = process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts";
+const MAX_CHAT_HISTORY_MESSAGES = 16;
 const DEFAULT_TTS_VOICE = (process.env.OPENAI_TTS_VOICE || "shimmer").trim();
 const DEFAULT_TTS_FORMAT = (
   process.env.OPENAI_TTS_FORMAT || "mp3"
@@ -3119,6 +3120,47 @@ function recordFallbackCoacheeAssessment({
   user.coachingProfile = normalizeCoachingProfile(profile);
 }
 
+async function updateProfileAfterAssistantReply({
+  apiKey,
+  user,
+  userMessage,
+  assistantReply,
+  meetingNotes,
+  selfReport,
+  sessionPace,
+}) {
+  try {
+    await analyzeAndUpdateCoacheeProfile({
+      apiKey,
+      user,
+      userMessage,
+      assistantReply,
+      meetingNotes,
+      selfReport,
+      sessionPace,
+    });
+    user.updatedAt = newIsoNow();
+    await persistUsers();
+  } catch (err) {
+    console.error("Profile analysis failed:", err.message);
+    try {
+      recordFallbackCoacheeAssessment({
+        user,
+        userMessage,
+        assistantReply,
+        meetingNotes,
+        selfReport,
+        sessionPace,
+        reason: err.message || "Analyzer unavailable.",
+      });
+      user.updatedAt = newIsoNow();
+      await persistUsers();
+    } catch (fallbackErr) {
+      console.error("Fallback assessment failed:", fallbackErr.message);
+    }
+  }
+}
+
 async function handleChat(req, res) {
   const user = getAuthenticatedUser(req);
   if (!user) {
@@ -3142,6 +3184,8 @@ async function handleChat(req, res) {
     const body = await parseBody(req);
     const incoming = Array.isArray(body.messages) ? body.messages : [];
     const initiate = Boolean(body.initiate);
+    const responseMode = sanitizeText(body.responseMode, 40).toLowerCase();
+    const voiceFastMode = responseMode === "voice_fast";
     const sessionPace = String(body.sessionPace || "standard")
       .trim()
       .toLowerCase() === "busy"
@@ -3152,12 +3196,18 @@ async function handleChat(req, res) {
     const messages = incoming
       .filter((m) => m && (m.role === "user" || m.role === "assistant"))
       .map((m) => ({ role: m.role, content: String(m.content || "") }));
+    const historyLimit = voiceFastMode
+      ? Math.min(10, MAX_CHAT_HISTORY_MESSAGES)
+      : MAX_CHAT_HISTORY_MESSAGES;
+    const recentMessages = messages.slice(-historyLimit);
     const latestUserMessage =
       [...messages].reverse().find((m) => m.role === "user")?.content || "";
+    const fastTurn = voiceFastMode || sessionPace === "busy";
 
     const payload = await createOpenAIChatCompletion(key.apiKey, {
       model: MODEL,
-      temperature: 0.4,
+      temperature: fastTurn ? 0.25 : 0.4,
+      max_tokens: fastTurn ? 170 : 300,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "system", content: COACHING_CONSTITUTION_PROMPT },
@@ -3177,6 +3227,12 @@ async function handleChat(req, res) {
         },
         {
           role: "system",
+          content: voiceFastMode
+            ? "Voice-fast mode: respond in 1-2 very short spoken sentences with one concrete next step or question."
+            : "Standard mode: concise conversational response.",
+        },
+        {
+          role: "system",
           content:
             meetingNotes || selfReport
               ? `Session evidence:\n- Meeting notes: ${
@@ -3184,7 +3240,7 @@ async function handleChat(req, res) {
                 }\n- Coachee self-report: ${selfReport || "None"}`
               : "Session evidence: no additional notes provided.",
         },
-        ...messages,
+        ...recentMessages,
       ],
     });
 
@@ -3194,40 +3250,20 @@ async function handleChat(req, res) {
       return;
     }
 
-    if (!initiate && latestUserMessage) {
-      try {
-        await analyzeAndUpdateCoacheeProfile({
-          apiKey: key.apiKey,
-          user,
-          userMessage: latestUserMessage,
-          assistantReply: reply,
-          meetingNotes,
-          selfReport,
-          sessionPace,
-        });
-        user.updatedAt = newIsoNow();
-        await persistUsers();
-      } catch (err) {
-        console.error("Profile analysis failed:", err.message);
-        try {
-          recordFallbackCoacheeAssessment({
-            user,
-            userMessage: latestUserMessage,
-            assistantReply: reply,
-            meetingNotes,
-            selfReport,
-            sessionPace,
-            reason: err.message || "Analyzer unavailable.",
-          });
-          user.updatedAt = newIsoNow();
-          await persistUsers();
-        } catch (fallbackErr) {
-          console.error("Fallback assessment failed:", fallbackErr.message);
-        }
-      }
-    }
-
     sendJson(res, 200, { reply, usage: payload.usage || null });
+    if (!initiate && latestUserMessage) {
+      // Run profile analysis asynchronously so chat replies return immediately.
+      void updateProfileAfterAssistantReply({
+        apiKey: key.apiKey,
+        user,
+        userMessage: latestUserMessage,
+        assistantReply: reply,
+        meetingNotes,
+        selfReport,
+        sessionPace,
+      });
+    }
+    return;
   } catch (err) {
     const status = Number(err?.status || 0);
     if (status >= 400 && status < 600) {

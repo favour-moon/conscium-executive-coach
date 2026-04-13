@@ -239,6 +239,7 @@ let speechRecognitionFinalText = "";
 let micPermissionVerified = false;
 let micStopRequested = false;
 let pendingVoiceAutoSend = false;
+let audioPlaybackUnlocked = false;
 
 const STARTER_PROMPT = "";
 const OPENING_MESSAGE =
@@ -2023,6 +2024,44 @@ function getAutoSendVoice() {
   return Boolean(autoSendVoiceEl?.checked);
 }
 
+async function unlockAudioPlayback() {
+  if (audioPlaybackUnlocked) return true;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) {
+    audioPlaybackUnlocked = true;
+    return true;
+  }
+
+  try {
+    if (!ttsAudioContext) {
+      ttsAudioContext = new Ctx();
+    }
+    if (ttsAudioContext.state === "suspended") {
+      await ttsAudioContext.resume();
+    }
+    const oscillator = ttsAudioContext.createOscillator();
+    const gain = ttsAudioContext.createGain();
+    gain.gain.value = 0;
+    oscillator.connect(gain);
+    gain.connect(ttsAudioContext.destination);
+    oscillator.start();
+    oscillator.stop(ttsAudioContext.currentTime + 0.01);
+    audioPlaybackUnlocked = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function installAudioUnlockOnGesture() {
+  const unlock = () => {
+    void unlockAudioPlayback();
+  };
+  window.addEventListener("pointerdown", unlock, { passive: true });
+  window.addEventListener("keydown", unlock, { passive: true });
+  window.addEventListener("touchstart", unlock, { passive: true });
+}
+
 function persistDraft() {
   try {
     localStorage.setItem(DRAFT_STORAGE_KEY, String(inputEl?.value || ""));
@@ -2170,11 +2209,25 @@ async function playAudioBlob(blob, token) {
     audio.onplay = () => {
       startAudioLipSync(audio);
     };
+    void unlockAudioPlayback();
     if (ttsAudioContext && ttsAudioContext.state === "suspended") {
       ttsAudioContext.resume().catch(() => {});
     }
     audio.play().catch((err) => {
       cleanup();
+      const rawMessage = String(err?.message || err?.name || "").toLowerCase();
+      if (
+        rawMessage.includes("notallowederror") ||
+        rawMessage.includes("not allowed by the user agent") ||
+        rawMessage.includes("user agent")
+      ) {
+        reject(
+          new Error(
+            "Audio playback blocked by browser policy. Click once on the page, then try again.",
+          ),
+        );
+        return;
+      }
       reject(err);
     });
   });
@@ -2604,6 +2657,7 @@ async function sendMessage() {
   const voiceTurnAuto = pendingVoiceAutoSend;
   pendingVoiceAutoSend = false;
 
+  void unlockAudioPlayback();
   stopSpeaking();
   const selectedPace = getSessionPace();
   state.sessionPace =
@@ -2617,8 +2671,16 @@ async function sendMessage() {
   setCoachVisualState("idle", "Thinking...");
 
   try {
-    const meetingNotes = meetingNotesInputEl ? meetingNotesInputEl.value.trim() : "";
-    const selfReport = selfReportInputEl ? selfReportInputEl.value.trim() : "";
+    const meetingNotes = voiceTurnAuto
+      ? ""
+      : meetingNotesInputEl
+        ? meetingNotesInputEl.value.trim()
+        : "";
+    const selfReport = voiceTurnAuto
+      ? ""
+      : selfReportInputEl
+        ? selfReportInputEl.value.trim()
+        : "";
     const contextLimit = voiceTurnAuto
       ? VOICE_CONTEXT_MESSAGES
       : MAX_CONTEXT_MESSAGES;
@@ -2629,6 +2691,7 @@ async function sendMessage() {
         meetingNotes,
         selfReport,
         sessionPace: state.sessionPace,
+        responseMode: voiceTurnAuto ? "voice_fast" : "standard",
       }),
     });
 
@@ -2671,6 +2734,7 @@ async function initiateCoachConversation() {
   setCoachVisualState("idle", "Opening...");
 
   try {
+    void unlockAudioPlayback();
     stopSpeaking();
     state.sessionPace = getSessionPace();
     const meetingNotes = meetingNotesInputEl ? meetingNotesInputEl.value.trim() : "";
@@ -2904,6 +2968,7 @@ async function toggleMic() {
     return;
   }
 
+  void unlockAudioPlayback();
   setStatus("Checking microphone...");
   const permission = await ensureMicrophonePermission();
   if (!permission.ok) {
@@ -3193,6 +3258,7 @@ if ("speechSynthesis" in window) {
 
 loadSpeechSettings();
 loadDraft();
+installAudioUnlockOnGesture();
 clearNudgeInputs();
 clearPracticePlanInputs();
 clearFeedbackInputs();
